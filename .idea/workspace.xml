@@ -2,12 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="65871145-9621-49e9-a15d-5c2653f62fc5" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/ui/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/gcs_state.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/ui/mainwindow.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/opengcs.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/setup.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/ui/dialogs.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/util.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/gcs_state.py" afterPath="$PROJECT_DIR$/opengcs/gcs_state.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/ui/mainwindow.py" afterPath="$PROJECT_DIR$/opengcs/ui/mainwindow.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/opengcs.py" afterPath="$PROJECT_DIR$/opengcs/opengcs.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="opengcs.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -28,31 +28,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="setup.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/setup.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="__init__.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/opengcs/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="opengcs.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/opengcs/opengcs.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="8" column="19" selection-start-line="8" selection-start-column="19" selection-end-line="8" selection-end-column="19" />
+              <caret line="16" column="0" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
               <folding>
                 <element signature="e#19#29#0" expanded="true" />
               </folding>
@@ -70,13 +50,25 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="mainwindow.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="mainwindow.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/opengcs/ui/mainwindow.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.41666666">
-              <caret line="11" column="58" selection-start-line="11" selection-start-column="58" selection-end-line="11" selection-end-column="58" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="51" column="14" selection-start-line="51" selection-start-column="14" selection-end-line="51" selection-end-column="14" />
               <folding>
-                <element signature="e#0#27#0" expanded="true" />
+                <element signature="e#0#68#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dialogs.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/opengcs/ui/dialogs.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.22727273">
+              <caret line="6" column="0" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
+              <folding>
+                <element signature="e#242#271#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -86,8 +78,10 @@
         <entry file="file://$PROJECT_DIR$/opengcs/gcs_state.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
-              <folding />
+              <caret line="72" column="26" selection-start-line="72" selection-start-column="26" selection-end-line="72" selection-end-column="26" />
+              <folding>
+                <element signature="e#0#31#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -95,9 +89,11 @@
       <file leaf-file-name="mavutil.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../mavlink/pymavlink/mavutil.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="435.55554">
-              <caret line="145" column="9" selection-start-line="145" selection-start-column="9" selection-end-line="145" selection-end-column="9" />
-              <folding />
+            <state vertical-scroll-proportion="-307.22223">
+              <caret line="766" column="25" selection-start-line="766" selection-start-column="17" selection-end-line="766" selection-end-column="25" />
+              <folding>
+                <element signature="e#138#203#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -149,10 +145,12 @@
       <list>
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/opengcs/__init__.py" />
-        <option value="$PROJECT_DIR$/opengcs/gcs_state.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/__init__.py" />
-        <option value="$PROJECT_DIR$/opengcs/opengcs.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/mainwindow.py" />
+        <option value="$PROJECT_DIR$/opengcs/opengcs.py" />
+        <option value="$PROJECT_DIR$/opengcs/util.py" />
+        <option value="$PROJECT_DIR$/opengcs/gcs_state.py" />
+        <option value="$PROJECT_DIR$/opengcs/ui/dialogs.py" />
       </list>
     </option>
   </component>
@@ -271,6 +269,12 @@
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../mavlink" />
     <property name="recentsLimit" value="5" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/opengcs/ui" />
+      <recent name="$PROJECT_DIR$/opengcs" />
+    </key>
   </component>
   <component name="RunManager" selected="Python.opengcs">
     <configuration default="false" name="opengcs" type="PythonConfigurationType" factoryName="Python" temporary="true">
@@ -422,6 +426,9 @@
     </recent_temporary>
   </component>
   <component name="ShelveChangesManager" show_recycled="false" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="65871145-9621-49e9-a15d-5c2653f62fc5" name="Default" comment="" />
@@ -455,6 +462,14 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
+  <component name="Vcs.Log.UiProperties">
+    <option name="RECENTLY_FILTERED_USER_GROUPS">
+      <collection />
+    </option>
+    <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
+      <collection />
+    </option>
+  </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
@@ -475,14 +490,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/gcs_state.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -527,14 +534,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mavlink/pymavlink/mavutil.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="435.55554">
-          <caret line="145" column="9" selection-start-line="145" selection-start-column="9" selection-end-line="145" selection-end-column="9" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/opengcs/ui/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -543,22 +542,60 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/ui/mainwindow.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="51" column="14" selection-start-line="51" selection-start-column="14" selection-end-line="51" selection-end-column="14" />
+          <folding>
+            <element signature="e#0#68#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/util.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.03787879">
+          <caret line="1" column="34" selection-start-line="1" selection-start-column="34" selection-end-line="1" selection-end-column="34" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../mavlink/pymavlink/mavutil.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-307.22223">
+          <caret line="766" column="25" selection-start-line="766" selection-start-column="17" selection-end-line="766" selection-end-column="25" />
+          <folding>
+            <element signature="e#138#203#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/gcs_state.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="72" column="26" selection-start-line="72" selection-start-column="26" selection-end-line="72" selection-end-column="26" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/opengcs/opengcs.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="8" column="19" selection-start-line="8" selection-start-column="19" selection-end-line="8" selection-end-column="19" />
+          <caret line="16" column="0" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
           <folding>
             <element signature="e#19#29#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/ui/mainwindow.py">
+    <entry file="file://$PROJECT_DIR$/opengcs/ui/dialogs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.41666666">
-          <caret line="11" column="58" selection-start-line="11" selection-start-column="58" selection-end-line="11" selection-end-column="58" />
+        <state vertical-scroll-proportion="0.22727273">
+          <caret line="6" column="0" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
           <folding>
-            <element signature="e#0#27#0" expanded="true" />
+            <element signature="e#242#271#0" expanded="true" />
           </folding>
         </state>
       </provider>
