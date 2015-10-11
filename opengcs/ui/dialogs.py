@@ -5,11 +5,13 @@
 # TODO: automatic updating of port status
 # TODO: alerting to dead ports
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon
-import PyQt5.QtCore
+from PyQt4.QtGui import *
+import PyQt4.QtCore
 from util import serial_ports
 from gcs_state import *
+import sys, inspect
+import os
+import importlib
 
 class ConnectionsDialog (QDialog):
     def __init__(self, state, parent=None):
@@ -28,7 +30,7 @@ class ConnectionsDialog (QDialog):
         self.connectionTable.setHorizontalHeaderLabels(['Checked','Port','Number','Status','Disconnect'])
         for p in range(0,len(self.serialports)):
             connected = QTableWidgetItem('0')
-            connected.setCheckState(PyQt5.QtCore.Qt.Checked)
+            connected.setCheckState(PyQt4.QtCore.Qt.Checked)
             self.connectionTable.setItem(p,0,connected)
             self.connectionTable.setItem(p,1,QTableWidgetItem(self.serialports[p]))
             self.connectionTable.setItem(p,2,QTableWidgetItem('2'))
@@ -46,7 +48,7 @@ class ConnectionsDialog (QDialog):
         self.newConnectionCombo.addItems(self.serialports)
         self.newConnectionCombo.addItem('TCP')
         self.newConnectionCombo.addItem('UDP')
-        self.newConnectionCombo.currentTextChanged.connect(self.on_connection_combo_changed)
+        self.newConnectionCombo.editTextChanged.connect(self.on_connection_combo_changed)
 
 
         self.newPortCombo = QComboBox(self)
@@ -111,3 +113,44 @@ class ConnectionsDialog (QDialog):
         else:
             self.newPortCombo.setVisible(True)
             self.newPortText.setVisible(False)
+
+class AddWidgetDialog (QDialog):
+    def __init__(self, state, parent=None):
+        super(AddWidgetDialog, self).__init__(parent)
+        self.state = state
+        self.InitUI()
+
+    def InitUI(self):
+        self.setWindowTitle('Add a widget')
+        self.resize(700,200)
+
+        self.listWidget = QListWidget(self)
+
+    def ListWidgets(self):
+        # Recursive file listing code from
+        # http://stackoverflow.com/questions/3207219/how-to-list-all-files-of-a-directory-in-python
+        f = []
+
+        path = self.state.path + '/ui/widgets'
+        print path
+        for (dirpath, dirnames, filenames) in os.walk(path):
+            f.extend(filenames)
+            break
+
+        # List comprehension code from
+        # http://stackoverflow.com/questions/2152898/filtering-a-list-of-strings-based-on-contents
+        f = [k for k in f if '.pyc' not in k]
+        f = [k for k in f if '__init__.py' not in k]
+        f = [k for k in f if 'GCSWidget.py' not in k]
+
+
+        #widgetModules =
+        for i in f:
+            modulename = i[:-3]
+            print(modulename)
+            importlib.import_module(i)
+        #for name, obj in inspect.getmembers(sys.modules[path]):
+        #    if inspect.isclass(obj):
+        #        print(obj)
+
+        return f

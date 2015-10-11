@@ -2,16 +2,18 @@
 
 import sys
 from ui.mainwindow import *
-from PyQt5 import QtWidgets
+from PyQt4 import QtGui
 import gcs_state
+import os
 
 
 def main():
     # Create a root data object
     state = gcs_state.GCSState()
+    state.path = os.path.dirname(__file__)
 
     # Launch the main application window
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtGui.QApplication(sys.argv)
     window = MainWindow(state)
     sys.exit(app.exec_())
 
