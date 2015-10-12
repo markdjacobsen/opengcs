@@ -36,3 +36,20 @@ def serial_ports():
             pass
     return result
 
+def import_package(name):
+    """Given a package name like 'foo.bar.quux', imports the package
+    and returns the desired module.
+    """
+    # Code taken directly from MAVProxy by Andrew Tridgell
+    #import zipimport
+    try:
+        mod = __import__(name)
+    except ImportError:
+        print("ImportError: " + name)
+        #clear_zipimport_cache()
+        #mod = __import__(name)
+
+    components = name.split('.')
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod

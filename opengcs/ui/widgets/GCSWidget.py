@@ -6,6 +6,9 @@ from PyQt4 import QtCore, QtGui
 
 
 class GCSWidget (QtGui.QDockWidget):
+
+    widgetName = "GCSWidget"
+
     def __init__(self, state, parent):
         super(GCSWidget, self).__init__("GCS Widget", parent)
         self.state = state
@@ -13,3 +16,4 @@ class GCSWidget (QtGui.QDockWidget):
 
         self.setWidget(QtGui.QLabel("hello"));
         self.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea);
+

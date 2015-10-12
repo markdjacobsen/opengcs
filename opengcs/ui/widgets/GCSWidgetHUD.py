@@ -3,6 +3,9 @@ from GCSWidget import *
 from PyQt4 import QtCore, QtGui
 
 class GCSWidgetHUD (GCSWidget):
+
+    widgetName = "HUD"
+
     def __init__(self, state, parent):
         super(GCSWidget, self).__init__(state, parent)
 

@@ -15,7 +15,8 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         self.setGeometry(300, 300, 1000, 500)
-        self.setWindowTitle("opengcs - MAV Ground Station")
+        self.setWindowTitle(self.state.config.settings['windowtitle'])
+        self.setWindowIcon(QIcon(self.state.config.settings['windowicon']))
 
         self.createActions()
         self.createToolBar()
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, widgets[4]);
         for i in range(0,2):
             self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, widgets[i]);
+
 
     def createActions(self):
         # Template for how to build a menu item
@@ -132,7 +134,7 @@ class MainWindow(QMainWindow):
         print("TODO onActionAddWidget")
         d = AddWidgetDialog(self.state)
         d.ListWidgets()
-        #d.exec_()
-        #d.show()
+        d.exec_()
+        d.show()
 
 

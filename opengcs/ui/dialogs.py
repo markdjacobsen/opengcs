@@ -7,11 +7,12 @@
 
 from PyQt4.QtGui import *
 import PyQt4.QtCore
-from util import serial_ports
+from util import serial_ports, import_package
 from gcs_state import *
 import sys, inspect
 import os
 import importlib
+from ui.widgets.GCSWidget import GCSWidget
 
 class ConnectionsDialog (QDialog):
     def __init__(self, state, parent=None):
@@ -125,14 +126,39 @@ class AddWidgetDialog (QDialog):
         self.resize(700,200)
 
         self.listWidget = QListWidget(self)
+        widgets = self.ListWidgets()
+        for w in widgets:
+            i = QListWidgetItem(w.widgetName)
+            self.listWidget.addItem(i)
+
+        label = QLabel("Select a widget to add to the current screen")
+
+        CancelButton = QPushButton('&Cancel', self)
+        CancelButton.clicked.connect(self.on_button_cancel)
+
+        OKButton = QPushButton('&OK', self)
+        OKButton.clicked.connect(self.on_button_ok)
+
+        hbox1 = QHBoxLayout()
+        hbox1.addStretch(1)
+        hbox1.addWidget(CancelButton)
+        hbox1.addWidget(OKButton)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(label)
+        vbox.addWidget(self.listWidget)
+        vbox.addLayout(hbox1)
+
+        self.setLayout(vbox)
 
     def ListWidgets(self):
+        sys.path.append("ui/widgets/")
+
         # Recursive file listing code from
         # http://stackoverflow.com/questions/3207219/how-to-list-all-files-of-a-directory-in-python
         f = []
-
         path = self.state.path + '/ui/widgets'
-        print path
+        #print path
         for (dirpath, dirnames, filenames) in os.walk(path):
             f.extend(filenames)
             break
@@ -144,13 +170,18 @@ class AddWidgetDialog (QDialog):
         f = [k for k in f if 'GCSWidget.py' not in k]
 
 
-        #widgetModules =
+        widgetModules = []
         for i in f:
             modulename = i[:-3]
-            print(modulename)
-            importlib.import_module(i)
-        #for name, obj in inspect.getmembers(sys.modules[path]):
-        #    if inspect.isclass(obj):
-        #        print(obj)
+            widgetModules.append(__import__(modulename))
 
-        return f
+        subs = GCSWidget.__subclasses__()
+        return subs
+
+
+    def on_button_ok(self):
+        # TODO
+        self.close()
+
+    def on_button_cancel(self):
+        self.close()

@@ -3,6 +3,9 @@ from GCSWidget import *
 from PyQt4 import QtCore, QtGui
 
 class GCSWidgetMap (GCSWidget):
+
+    widgetName = "Map"
+
     def __init__(self, state, parent):
         super(GCSWidget, self).__init__(state, parent)
 

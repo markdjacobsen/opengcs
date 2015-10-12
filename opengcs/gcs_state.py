@@ -1,5 +1,6 @@
 from pymavlink.mavutil import *
 import threading
+import xmltodict
 
 from enum import Enum
 #class ConnectionType(Enum):
@@ -18,6 +19,7 @@ class GCSState():
         self.connections = []
         self.mavs = []
         self.components = []
+        self.config = GCSConfig()
 
         return
 
@@ -100,3 +102,17 @@ class MAV:
             print("Heartbeat received from APM (system %u component %u)\n" % (self.master.target_system, self.master.target_system))
             self.system_id = self.master.target_system
             self.master.message_hooks.remove(self.check_heartbeat)
+
+class GCSConfig:
+    def __init__(self):
+        self.settings = {}
+        self.load()
+
+    def load(self):
+        with open('settings.xml') as fd:
+            self.settings = xmltodict.parse(fd.read())['settings']
+        print(self.settings)
+        return
+
+    def save(self):
+        return
