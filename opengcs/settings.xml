@@ -1,5 +1,6 @@
 <settings>
-    <windowtitle>Uplift opengcs</windowtitle>
-    <icon>art/48x48/aldrin.png</icon>
-    <windowicon>art/16x16/aldrin.png</windowicon>
+    <windowtitle>OpenGCS - Uplift Aeronautics</windowtitle>
+    <appicon>art/48x48/uplift.png</appicon>
+    <windowicon>art/16x16/uplift.png</windowicon>
+    <perspective>ui/defaultperspective.xml</perspective>
 </settings>

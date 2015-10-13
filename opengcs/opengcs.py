@@ -14,6 +14,7 @@ def main():
 
     # Launch the main application window
     app = QtGui.QApplication(sys.argv)
+    app.setWindowIcon(QIcon(state.config.settings['appicon']))
     window = MainWindow(state)
     sys.exit(app.exec_())
 

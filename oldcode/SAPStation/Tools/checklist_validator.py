@@ -9,6 +9,6 @@ parser.add_argument('filename', action='store', help='XML checklist filename')
 args = parser.parse_args()
 
 c = checklist.Checklist()
-c.load(args.filename)
+c.load_settings(args.filename)
 
 

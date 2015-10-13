@@ -1,0 +1,33 @@
+<perspective>
+    <name>Default Perspective</name>
+    <screen>
+        <name>Screen1</name>
+        <icon>art/48x48/video-display-3.png</icon>
+        <tooltip>Switch to screen 1</tooltip>
+        <widget>
+            <type>GCSWidgetHud</type>
+            <name>Heads Up Display</name>
+        </widget>
+        <widget>
+            <type>GCSWidgetMap</type>
+            <name>Map</name>
+        </widget>
+    </screen>
+    <screen>
+        <name>Screen2</name>
+        <icon>art/48x48/video-display-3.png</icon>
+        <tooltip>Switch to screen 2</tooltip>
+        <widget>
+            <type>GCSWidget</type>
+            <name>Hello World #1</name>
+        </widget>
+        <widget>
+            <type>GCSWidget</type>
+            <name>Hello World #2</name>
+        </widget>
+        <widget>
+            <type>GCSWidget</type>
+            <name>Hello World #3</name>
+        </widget>
+    </screen>
+</perspective>

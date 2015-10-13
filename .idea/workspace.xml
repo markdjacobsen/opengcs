@@ -2,16 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="65871145-9621-49e9-a15d-5c2653f62fc5" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/settings.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidget.py" afterPath="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidget.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetHUD.py" afterPath="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetHUD.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetMap.py" afterPath="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetMap.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/ui/dialogs.py" afterPath="$PROJECT_DIR$/opengcs/ui/dialogs.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/opengcs/ui/defaultperspective.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/oldcode/SAPStation/Reference/apmtools.py" afterPath="$PROJECT_DIR$/oldcode/SAPStation/Reference/apmtools.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/oldcode/SAPStation/Tools/checklist_validator.py" afterPath="$PROJECT_DIR$/oldcode/SAPStation/Tools/checklist_validator.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/oldcode/SAPStation/flightplan.py" afterPath="$PROJECT_DIR$/oldcode/SAPStation/flightplan.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/gcs_state.py" afterPath="$PROJECT_DIR$/opengcs/gcs_state.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/ui/mainwindow.py" afterPath="$PROJECT_DIR$/opengcs/ui/mainwindow.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/opengcs.iml" afterPath="$PROJECT_DIR$/.idea/opengcs.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/util.py" afterPath="$PROJECT_DIR$/opengcs/util.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/opengcs.py" afterPath="$PROJECT_DIR$/opengcs/opengcs.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/opengcs/settings.xml" afterPath="$PROJECT_DIR$/opengcs/settings.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="opengcs.iws" />
@@ -37,7 +35,7 @@
         <entry file="file://$PROJECT_DIR$/opengcs/opengcs.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="12" column="42" selection-start-line="12" selection-start-column="42" selection-end-line="12" selection-end-column="42" />
+              <caret line="13" column="0" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
               <folding>
                 <element signature="e#19#29#0" expanded="true" />
               </folding>
@@ -45,11 +43,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="mainwindow.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="mainwindow.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/opengcs/ui/mainwindow.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="17" column="68" selection-start-line="17" selection-start-column="68" selection-end-line="17" selection-end-column="68" />
+            <state vertical-scroll-proportion="0.7944915">
+              <caret line="38" column="75" selection-start-line="38" selection-start-column="75" selection-end-line="38" selection-end-column="75" />
               <folding>
                 <element signature="e#0#25#0" expanded="true" />
               </folding>
@@ -69,21 +67,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="mavproxy.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../MAVProxy/MAVProxy/mavproxy.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-0.5555556">
-              <caret line="395" column="8" selection-start-line="395" selection-start-column="8" selection-end-line="395" selection-end-column="29" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="gcs_state.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="gcs_state.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/opengcs/gcs_state.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.52330506">
-              <caret line="108" column="19" selection-start-line="108" selection-start-column="19" selection-end-line="108" selection-end-column="19" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="134" column="0" selection-start-line="134" selection-start-column="0" selection-end-line="134" selection-end-column="0" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -95,7 +83,17 @@
         <entry file="file://$PROJECT_DIR$/opengcs/settings.xml">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
+              <caret line="1" column="24" selection-start-line="1" selection-start-column="24" selection-end-line="1" selection-end-column="24" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="defaultperspective.xml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/opengcs/ui/defaultperspective.xml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="21" column="39" selection-start-line="21" selection-start-column="39" selection-end-line="21" selection-end-column="39" />
               <folding />
             </state>
           </provider>
@@ -115,7 +113,7 @@
         <entry file="file://$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetHUD.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="18" selection-end-column="37" />
               <folding>
                 <element signature="e#28#51#0" expanded="true" />
               </folding>
@@ -164,15 +162,17 @@
         <option value="$PROJECT_DIR$/opengcs/__init__.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/__init__.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/widgets/__init__.py" />
-        <option value="$PROJECT_DIR$/opengcs/opengcs.py" />
         <option value="$PROJECT_DIR$/opengcs/util.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidget.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetMap.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetHUD.py" />
         <option value="$PROJECT_DIR$/opengcs/ui/dialogs.py" />
-        <option value="$PROJECT_DIR$/opengcs/settings.xml" />
-        <option value="$PROJECT_DIR$/opengcs/ui/mainwindow.py" />
+        <option value="$PROJECT_DIR$/opengcs/defaultperspective.xml" />
+        <option value="$PROJECT_DIR$/opengcs/opengcs.py" />
         <option value="$PROJECT_DIR$/opengcs/gcs_state.py" />
+        <option value="$PROJECT_DIR$/opengcs/ui/mainwindow.py" />
+        <option value="$PROJECT_DIR$/opengcs/ui/defaultperspective.xml" />
+        <option value="$PROJECT_DIR$/opengcs/settings.xml" />
       </list>
     </option>
   </component>
@@ -180,8 +180,8 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="y" value="67" />
-    <option name="width" value="1407" />
+    <option name="y" value="69" />
+    <option name="width" value="1400" />
     <option name="height" value="777" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
@@ -484,7 +484,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="67" width="1407" height="777" extended-state="0" />
+    <frame x="0" y="69" width="1400" height="777" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -492,7 +492,7 @@
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32909605" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.18194741" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.18285714" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3997175" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2937853" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -582,7 +582,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="766" column="25" selection-start-line="766" selection-start-column="17" selection-end-line="766" selection-end-column="25" />
           <folding>
-            <element signature="e#138#203#0" expanded="true" />
+            <element signature="e#138#203#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -592,7 +592,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#155#169#0" expanded="true" />
+            <element signature="e#155#169#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -664,7 +664,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="766" column="25" selection-start-line="766" selection-start-column="17" selection-end-line="766" selection-end-column="25" />
           <folding>
-            <element signature="e#138#203#0" expanded="true" />
+            <element signature="e#138#203#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -693,22 +693,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/opengcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="12" column="42" selection-start-line="12" selection-start-column="42" selection-end-line="12" selection-end-column="42" />
-          <folding>
-            <element signature="e#19#29#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../mavlink/pymavlink/mavextra.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#155#169#0" expanded="true" />
+            <element signature="e#155#169#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -729,28 +719,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/ui/widgets/GCSWidget.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="9" column="4" selection-start-line="9" selection-start-column="4" selection-end-line="9" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetMap.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="19" column="0" selection-start-line="19" selection-start-column="0" selection-end-line="19" selection-end-column="0" />
-          <folding>
-            <element signature="e#28#51#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetHUD.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
           <folding>
             <element signature="e#28#51#0" expanded="true" />
           </folding>
@@ -767,30 +739,66 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/ui/mainwindow.py">
+    <entry file="file://$PROJECT_DIR$/opengcs/opengcs.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="17" column="68" selection-start-line="17" selection-start-column="68" selection-end-line="17" selection-end-column="68" />
+          <caret line="13" column="0" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
           <folding>
-            <element signature="e#0#25#0" expanded="true" />
+            <element signature="e#19#29#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/ui/widgets/GCSWidget.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="9" column="4" selection-start-line="9" selection-start-column="4" selection-end-line="9" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/ui/widgets/GCSWidgetHUD.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="18" selection-end-column="37" />
+          <folding>
+            <element signature="e#28#51#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/gcs_state.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="134" column="0" selection-start-line="134" selection-start-column="0" selection-end-line="134" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/opengcs/ui/defaultperspective.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="21" column="39" selection-start-line="21" selection-start-column="39" selection-end-line="21" selection-end-column="39" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/opengcs/settings.xml">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
+          <caret line="1" column="24" selection-start-line="1" selection-start-column="24" selection-end-line="1" selection-end-column="24" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/opengcs/gcs_state.py">
+    <entry file="file://$PROJECT_DIR$/opengcs/ui/mainwindow.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.52330506">
-          <caret line="108" column="19" selection-start-line="108" selection-start-column="19" selection-end-line="108" selection-end-column="19" />
+        <state vertical-scroll-proportion="0.7944915">
+          <caret line="38" column="75" selection-start-line="38" selection-start-column="75" selection-end-line="38" selection-end-column="75" />
           <folding>
-            <element signature="e#0#31#0" expanded="true" />
+            <element signature="e#0#25#0" expanded="true" />
           </folding>
         </state>
       </provider>

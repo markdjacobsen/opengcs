@@ -193,7 +193,7 @@ class Swarm:
             flight.add_to_kml(kml)
 
         # save the kml to a file
-        kml.save(filename)
+        kml.save_settings(filename)
         return
 
     def save_flight_plans(self):

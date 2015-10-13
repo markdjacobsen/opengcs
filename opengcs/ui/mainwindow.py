@@ -4,6 +4,7 @@ from ui.widgets.GCSWidget import *
 from ui.widgets.GCSWidgetHUD import *
 from ui.widgets.GCSWidgetMap import *
 from PyQt4 import QtCore, QtGui
+import functools
 
 import gettext
 
@@ -14,6 +15,9 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
+        """
+        Initialize the user interface for the main window
+        """
         self.setGeometry(300, 300, 1000, 500)
         self.setWindowTitle(self.state.config.settings['windowtitle'])
         self.setWindowIcon(QIcon(self.state.config.settings['windowicon']))
@@ -22,7 +26,6 @@ class MainWindow(QMainWindow):
         self.createToolBar()
         self.createStatusBar()
         self.createMenu()
-
 
         # Widgets
         widgets = []
@@ -37,6 +40,9 @@ class MainWindow(QMainWindow):
 
 
     def createActions(self):
+        """
+        Create the PyQt actions used by the main window
+        """
         # Template for how to build a menu item
         self.actionSettings = QAction(QIcon('art/48x48/applications-system-4.png'), '&Settings', self)
         #testAction.setShortcut('Ctrl+Q')
@@ -48,14 +54,6 @@ class MainWindow(QMainWindow):
         self.actionConnections = QAction(QIcon('art/48x48/network-globe.png'), '&Connections', self)
         self.actionConnections.setStatusTip('Open connections dialog')
         self.actionConnections.triggered.connect(self.onActionConnections)
-
-        self.actionScreen1 = QAction('&1', self)
-        self.actionScreen1.setStatusTip('View screen 1')
-        self.actionScreen1.triggered.connect(self.onActionScreen1)
-
-        self.actionScreen2 = QAction('&2', self)
-        self.actionScreen2.setStatusTip('View screen 2')
-        self.actionScreen2.triggered.connect(self.onActionScreen2)
 
         # TODO change icon
         self.actionLoadPerspective = QAction(QIcon('art/48x48/network-globe.png'), '&Load Perspective', self)
@@ -72,20 +70,36 @@ class MainWindow(QMainWindow):
         self.actionAddWidget.setStatusTip('Add a widget to the current screen')
         self.actionAddWidget.triggered.connect(self.onActionAddWidget)
 
+        self.screenActions = []
+        screenNumber = 0
+        for screen in self.state.config.perspective['screen']:
+            action = QAction(QIcon(screen['icon']), screen['name'], self)
+            action.setToolTip(screen['tooltip'])
+            action.triggered.connect(functools.partial(self.onActionScreen,screenNumber))
+            self.screenActions.append(action)
+            screenNumber = screenNumber + 1
 
     def createToolBar(self):
-        # Toolbar
+        """
+        Create the toolbar items used by the main window
+        """
         self.toolbar = self.addToolBar('MainToolbar')
         self.toolbar.addAction(self.actionSettings)
         self.toolbar.addAction(self.actionConnections)
-        self.toolbar.addAction(self.actionScreen1)
-        self.toolbar.addAction(self.actionScreen2)
+
+        for screenAction in self.screenActions:
+            self.toolbar.addAction(screenAction)
 
     def createStatusBar(self):
+        """
+        Create the status bar used by the main window
+        """
         self.statusBar().showMessage('')
 
     def createMenu(self):
-
+        """
+        Create the menu used by the main window
+        """
         self.menubar = self.menuBar()
         self.menuFile = self.menubar.addMenu('&File')
         self.menuFile.addAction(self.actionSettings)
@@ -93,8 +107,8 @@ class MainWindow(QMainWindow):
         self.menuView = self.menubar.addMenu('&View')
 
         self.chooseScreenMenu = QtGui.QMenu('Choose Screen',self)
-        self.chooseScreenMenu.addAction(self.actionScreen1)
-        self.chooseScreenMenu.addAction(self.actionScreen2)
+        for screenAction in self.screenActions:
+            self.chooseScreenMenu.addAction(screenAction)
 
         self.menuView.addMenu(self.chooseScreenMenu)
         self.menuView.addAction(self.actionAddWidget)
@@ -113,13 +127,9 @@ class MainWindow(QMainWindow):
         d.exec_()
         d.show()
 
-    def onActionScreen1(self):
+    def onActionScreen(self, screenNumber):
         # TODO
-        print("TODO onActionScreen1")
-
-    def onActionScreen2(self):
-        # TODO
-        print("TODO onActionScreen2")
+        print("TODO onActionScreen " + str(screenNumber))
 
     def onActionSavePerspective(self):
         # TODO

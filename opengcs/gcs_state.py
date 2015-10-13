@@ -106,13 +106,39 @@ class MAV:
 class GCSConfig:
     def __init__(self):
         self.settings = {}
-        self.load()
+        self.perspective = {}
+        self.load_settings()
+        self.load_perspective(self.settings['perspective'])
 
-    def load(self):
+
+    def load_settings(self):
+        """
+        Load application configuration from an XML file
+        """
         with open('settings.xml') as fd:
             self.settings = xmltodict.parse(fd.read())['settings']
-        print(self.settings)
         return
 
-    def save(self):
+    def save_settings(self):
+        """
+        Save application configuration to an XML file
+        """
+        # TODO implement
         return
+
+    def load_perspective(self, filename):
+        """
+        Load a perspective from an XML file
+        """
+        with open(filename) as fd:
+            self.perspective = xmltodict.parse(fd.read())['perspective']
+
+        return
+
+    def save_perspective(self, filename):
+        """
+        Save this perspective to an XML file
+        """
+        # TODO implement
+        return
+
