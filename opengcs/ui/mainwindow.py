@@ -27,28 +27,33 @@ class MainWindow(QMainWindow):
         self.createStatusBar()
         self.createMenu()
 
-        # Widgets
-        widgets = []
-        for i in range(0,3):
-            widgets.append(GCSWidget("widget " + str(i), self))
-        widgets.append(GCSWidgetHUD("HUD",self))
-        widgets.append(GCSWidgetMap("HUD",self))
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, widgets[3]);
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, widgets[4]);
-        for i in range(0,2):
-            self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, widgets[i]);
+        self.DisplayScreen(0)
 
+    def DisplayScreen(self, screenNumber):
+        """
+        Display the given screen number, indexed from 0. 0 is the default screen.
+        """
+        # Erase the current screen
+        for w in self.children():
+            if isinstance(w,QDockWidget):
+                self.removeDockWidget(w)
+
+        screen = self.state.config.perspective['screen'][screenNumber]
+        for w in screen['widget']:
+            # TODO passing the state variable for the first parameter crashes constructor
+            get_class = lambda x: globals()[x]            
+            newWidget = get_class('GCSWidgetHUD')('HUD', self)
+            # TODO replace hard-coded area with something pulled from XML
+            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, newWidget)
 
     def createActions(self):
         """
         Create the PyQt actions used by the main window
         """
-        # Template for how to build a menu item
+
         self.actionSettings = QAction(QIcon('art/48x48/applications-system-4.png'), '&Settings', self)
-        #testAction.setShortcut('Ctrl+Q')
         self.actionSettings.setStatusTip('Open the settings menu')
         self.actionSettings.setToolTip(('Settings'))
-        #testAction.triggered.connect(qApp.quit)
         self.actionSettings.triggered.connect(self.onSettingsAction)
 
         self.actionConnections = QAction(QIcon('art/48x48/network-globe.png'), '&Connections', self)
@@ -65,19 +70,19 @@ class MainWindow(QMainWindow):
         self.actionSavePerspective.setStatusTip('Save perspective file')
         self.actionSavePerspective.triggered.connect(self.onActionSavePerspective)
 
-        # TODO add widget
         self.actionAddWidget = QAction(QIcon('art/48x48/network-globe.png'), '&Add Widget', self)
         self.actionAddWidget.setStatusTip('Add a widget to the current screen')
         self.actionAddWidget.triggered.connect(self.onActionAddWidget)
 
-        self.screenActions = []
+        self.actionsScreens = []
         screenNumber = 0
         for screen in self.state.config.perspective['screen']:
             action = QAction(QIcon(screen['icon']), screen['name'], self)
             action.setToolTip(screen['tooltip'])
             action.triggered.connect(functools.partial(self.onActionScreen,screenNumber))
-            self.screenActions.append(action)
+            self.actionsScreens.append(action)
             screenNumber = screenNumber + 1
+            # TODO add keyboard shortcuts
 
     def createToolBar(self):
         """
@@ -87,8 +92,8 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.actionSettings)
         self.toolbar.addAction(self.actionConnections)
 
-        for screenAction in self.screenActions:
-            self.toolbar.addAction(screenAction)
+        for actionScreen in self.actionsScreens:
+            self.toolbar.addAction(actionScreen)
 
     def createStatusBar(self):
         """
@@ -107,8 +112,8 @@ class MainWindow(QMainWindow):
         self.menuView = self.menubar.addMenu('&View')
 
         self.chooseScreenMenu = QtGui.QMenu('Choose Screen',self)
-        for screenAction in self.screenActions:
-            self.chooseScreenMenu.addAction(screenAction)
+        for actionScreen in self.actionsScreens:
+            self.chooseScreenMenu.addAction(actionScreen)
 
         self.menuView.addMenu(self.chooseScreenMenu)
         self.menuView.addAction(self.actionAddWidget)
