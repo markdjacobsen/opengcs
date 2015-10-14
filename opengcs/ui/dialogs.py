@@ -1,17 +1,17 @@
-# TODO: open connection
 # TODO: have a verbose option for showing mavlink feed
-# TODO: read open connections from state
-# TODO: remove open connections from botom list
-# TODO: automatic updating of port status
-# TODO: alerting to dead ports
+# TODO: bug - clicking "OK" causes window to reopen a second time before closing
+# TODO: make disconnect button work
+# TODO: close all ports upon closing program
+# TODO: update port status icon / alert to dead ports
 
 from PyQt4.QtGui import *
 import PyQt4.QtCore
 from util import serial_ports, import_package
 from gcs_state import *
-import sys, inspect
+import sys
 import os
-import importlib
+import functools
+
 from ui.widgets.GCSWidget import GCSWidget
 
 class ConnectionsDialog (QDialog):
@@ -25,32 +25,12 @@ class ConnectionsDialog (QDialog):
         self.resize(700,200)
 
         openConnectionsLabel = QLabel('Open connections:', self)
-        self.serialports = serial_ports()
-
-        self.connectionTable = QTableWidget(len(self.serialports),5,self)
-        self.connectionTable.setHorizontalHeaderLabels(['Checked','Port','Number','Status','Disconnect'])
-        for p in range(0,len(self.serialports)):
-            connected = QTableWidgetItem('0')
-            connected.setCheckState(PyQt4.QtCore.Qt.Checked)
-            self.connectionTable.setItem(p,0,connected)
-            self.connectionTable.setItem(p,1,QTableWidgetItem(self.serialports[p]))
-            self.connectionTable.setItem(p,2,QTableWidgetItem('2'))
-            imgItem = QTableWidgetItem()
-            imgItem.setIcon(QIcon('art/16x16/dialog-clean.png'))
-            self.connectionTable.setItem(p,3,imgItem)
-
-            btnDisconnect = QPushButton('Disconnect')
-            self.connectionTable.setCellWidget(p,4,btnDisconnect)
-
-
-
+        self.connectionTable = QTableWidget(1,4,self)
+        self.connectionTable.setHorizontalHeaderLabels(['Status','Port','Number','Disconnect'])
+        self.connectionTable.horizontalHeader().setResizeMode(0,QHeaderView.ResizeToContents)
+        self.connectionTable.horizontalHeader().setResizeMode(1,QHeaderView.Stretch)
         newConnectionLabel = QLabel('Open new connection:', self)
         self.newConnectionCombo = QComboBox(self)
-        self.newConnectionCombo.addItems(self.serialports)
-        self.newConnectionCombo.addItem('TCP')
-        self.newConnectionCombo.addItem('UDP')
-        self.newConnectionCombo.editTextChanged.connect(self.on_connection_combo_changed)
-
 
         self.newPortCombo = QComboBox(self)
         self.newPortCombo.addItem('56700')
@@ -87,23 +67,89 @@ class ConnectionsDialog (QDialog):
 
         self.setLayout(vbox)
 
+        self.UpdatePorts()
+
+    def UpdatePorts(self):
+        self.serialports = serial_ports()
+
+        self.connectionTable.clearContents()
+        self.connectionTable.setRowCount(len(self.state.connections))
+
+        self.openports = []
+
+        row = 0
+        for conn in self.state.connections:
+
+            self.openports.append(conn.port)
+
+            item = QTableWidgetItem('0')
+            status = QTableWidgetItem()
+            if conn.getPortDead() == False:
+                status.setIcon(QIcon('art/16x16/dialog-clean.png'))
+            else:
+                status.setIcon(QIcon('art/16x16/dialog-error-2.png'))
+            self.connectionTable.setItem(row,0,status)
+            self.connectionTable.setItem(row,1,QTableWidgetItem(conn.port))
+            self.connectionTable.setItem(row,2,QTableWidgetItem(conn.number))
+            btnDisconnect = QPushButton('Disconnect')
+            self.connectionTable.setCellWidget(row,3,btnDisconnect)
+            btnDisconnect.clicked.connect(functools.partial(self.on_button_disconnect, row))
+            row = row + 1
+
+        self.newConnectionCombo.clear()
+        for port in self.serialports:
+            if port not in self.openports:
+                self.newConnectionCombo.addItem(port)
+        self.newConnectionCombo.addItem('TCP')
+        self.newConnectionCombo.addItem('UDP')
+        self.newConnectionCombo.editTextChanged.connect(self.on_connection_combo_changed)
+
+
+
+
     def on_button_ok(self):
         self.close()
 
     def on_button_connect(self):
         # TODO
+        #mav1 = MAV()
+        #mav1.connect('/dev/tty.usbmodemfa141',115200)
+        #print("Connected")
+        #return
+        #conn = Connection('/dev/tty.usbmodemfa141',115200)
+        #self.state.connections.append(conn)
+        #self.UpdatePorts()
+        #return
+
+
         print("on_button_connect()")
         conntype = self.newConnectionCombo.currentText()
+        conn = None
+
         if conntype == "TCP" or conntype == "UDP":
             try:
-                conn = Connection(self.newConnectionCombo.currentText(), int(self.newPortText.text()))
+                conn = Connection(str(self.newConnectionCombo.currentText()), int(self.newPortText.text()))
             except ValueError:
                 msgBox = QMessageBox()
                 msgBox.setText("Please enter a valid port number")
                 msgBox.exec_()
                 return
         else:
-            conn = Connection(self.newConnectionCombo.currentText(), int(self.newPortCombo.currentText()))
+            try:
+                conn = Connection(str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
+            except:
+                msgBox = QMessageBox()
+                msgBox.setText("Unexpected error connecting to serial port")
+                msgBox.exec_()
+                return
+
+        self.state.connections.append(conn)
+
+        self.UpdatePorts()
+
+
+    def on_button_disconnect(self, row):
+        print "Disconnect " + str(row)
 
     def on_connection_combo_changed(self):
         print("combo changed")

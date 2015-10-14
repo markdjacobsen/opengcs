@@ -1,12 +1,7 @@
-from pymavlink.mavutil import *
+from pymavlink import mavutil
 import threading
 import xmltodict
-
-from enum import Enum
-#class ConnectionType(Enum):
-#    serial = 0
-#    tcp = 1
-#    udp = 2
+import sys
 
 class GCSState():
     """
@@ -27,15 +22,12 @@ class Connection:
     """
     Encapsulates a connection via serial, TCP, or UDP ports, etc.
     """
-    def __init__(self):
-        self.port = ""
-        self.number = ""
-        self.mavs = []
-
     def __init__(self, port, number):
         self.port = port
         self.number = number
-
+        self.mavs = []
+        print(self.port)
+        print(self.number)
         # TODO figure out how to handle these
         if port == "UDP" or port == "TCP":
             return
@@ -47,6 +39,8 @@ class Connection:
         # the MAV object.
         newmav = MAV()
         newmav.connect(port, number)
+        self.mavs.append(newmav)
+
 
     def getPortDead(self):
         """
@@ -55,7 +49,7 @@ class Connection:
         if len(self.mavs) == 0:
             return True
         else:
-            return self.mavs[0].portdead
+            return self.mavs[0].master.portdead
 
 class MAV:
     """
@@ -81,12 +75,42 @@ class MAV:
         # etc... these are just placeholders for now to illustrate how this might work
 
     def connect(self, port, number):
-        self.master = mavlink_connection(port, baud=number)
+        print("Connecting to " + port)
+        self.master = mavutil.mavlink_connection(port, baud=number)
+
         self.thread = threading.Thread(target=self.process_messages)
         self.thread.setDaemon(True)
         self.thread.start()
 
-        self.master.message_hooks.append(self.check_heartbeat)
+        #self.master.message_hooks.append(self.check_heartbeat)
+        #self.master.message_hooks.append(self.log_message)
+
+
+    def log_message(self,caller,msg):
+        if msg.get_type() != 'BAD_DATA':
+            print(str(msg))
+        return
+
+    def process_messages(self):
+        """
+        This runs continuously. The mavutil.recv_match() function will call mavutil.post_message()
+        any time a new message is received, and will notify all functions in the master.message_hooks list.
+        """
+        while True:
+            msg = self.master.recv_match(blocking=True)
+            if not msg:
+                return
+            if msg.get_type() == "BAD_DATA":
+                if mavutil.all_printable(msg.data):
+                    sys.stdout.write(msg.data)
+                    sys.stdout.flush()
+
+            mtype = msg.get_type()
+            if mtype == "VFR_HUD":
+                self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.master.messages)
+                self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.master.messages)
+                self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.master.messages)
+                print("Altitude: " + str(self.altitude))
 
     def check_heartbeat(self,caller,msg):
         """
@@ -142,3 +166,10 @@ class GCSConfig:
         # TODO implement
         return
 
+if __name__ == "__main__":
+    mav1 = MAV()
+    mav1.connect('/dev/tty.usbmodemfa141',115200)
+    print("Connected")
+    i = 0
+    while 0 < 1:
+        i = 1 - i

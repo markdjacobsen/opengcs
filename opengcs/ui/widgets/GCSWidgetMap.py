@@ -7,7 +7,7 @@ class GCSWidgetMap (GCSWidget):
     widgetName = "Map"
 
     def __init__(self, state, parent):
-        super(GCSWidget, self).__init__(state, parent)
+        super(GCSWidgetMap, self).__init__(state, parent)
 
         self.setWindowTitle("Map")
         self.setWidget(QtGui.QLabel("Map Widget"))

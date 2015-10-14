@@ -7,7 +7,7 @@ class GCSWidgetHUD (GCSWidget):
     widgetName = "HUD"
 
     def __init__(self, state, parent):
-        super(GCSWidget, self).__init__(state, parent)
+        super(GCSWidgetHUD, self).__init__(state, parent)
 
         self.setWindowTitle("HUD")
 

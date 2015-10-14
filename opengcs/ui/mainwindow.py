@@ -27,7 +27,8 @@ class MainWindow(QMainWindow):
         self.createStatusBar()
         self.createMenu()
 
-        self.DisplayScreen(0)
+        self.activeScreen = 0
+        self.DisplayScreen(self.activeScreen)
 
     def DisplayScreen(self, screenNumber):
         """
@@ -42,9 +43,19 @@ class MainWindow(QMainWindow):
         for w in screen['widget']:
             # TODO passing the state variable for the first parameter crashes constructor
             get_class = lambda x: globals()[x]            
-            newWidget = get_class('GCSWidgetHUD')('HUD', self)
+            newWidget = get_class(w['type'])(self.state, self)
             # TODO replace hard-coded area with something pulled from XML
-            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, newWidget)
+            location = w['location'].lower()
+            if location == 'center':
+                self.setCentralWidget(newWidget)
+            elif location == 'left':
+                self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, newWidget)
+            elif location == 'right':
+                self.addDockWidget(QtCore.Qt.RightDockWidgetArea, newWidget)
+            elif location == 'top':
+                self.addDockWidget(QtCore.Qt.TopDockWidgetArea, newWidget)
+            else:
+                self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, newWidget)
 
     def createActions(self):
         """
@@ -135,6 +146,8 @@ class MainWindow(QMainWindow):
     def onActionScreen(self, screenNumber):
         # TODO
         print("TODO onActionScreen " + str(screenNumber))
+        self.activeScreen = screenNumber
+        self.DisplayScreen(self.activeScreen)
 
     def onActionSavePerspective(self):
         # TODO

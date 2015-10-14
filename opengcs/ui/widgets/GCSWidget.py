@@ -14,10 +14,20 @@ class GCSWidget (QtGui.QDockWidget):
     widgetName = "GCSWidget"
 
     def __init__(self, state, parent):
-        super(GCSWidget, self).__init__("GCS Widget", parent)
+        super(GCSWidget, self).__init__("TODO", parent)
         self.state = state
+        self.setWindowTitle("Blank Widget (Base Class)")
 
+        self.setWidget(QtGui.QLabel("Inherit from GCSWidget to create your own widget"));
+        #self.mousePressEvent.connect(self.on_mouse)
 
-        self.setWidget(QtGui.QLabel("hello"));
-        self.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea);
+    def mousePressEvent(self, QMouseEvent):
+        print("Features" + str(self.features()))
+        print("Height: " + str(self.height()), "Width: " + str(self.width()))
+        print("Is floating: " + str(self.isFloating()))
+        print("Pos: " + str(self.pos()))
+        print("Size: " + str(self.size()))
+        print("X: " + str(self.x))
+        print("Y: " + str(self.y))
+
 
