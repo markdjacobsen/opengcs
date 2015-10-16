@@ -10,13 +10,18 @@
             <location>left</location>
         </widget>
         <widget>
+            <type>GCSWidgetMAVNetwork</type>
+            <name>MAV Network</name>
+            <location>left</location>
+        </widget>
+        <widget>
             <type>GCSWidgetMap</type>
             <name>Map</name>
             <location>center</location>
         </widget>
         <widget>
-            <type>GCSWidget</type>
-            <name>Right Widget</name>
+            <type>GCSWidgetParameterList</type>
+            <name>My Parameters</name>
             <location>right</location>
         </widget>
         <widget>

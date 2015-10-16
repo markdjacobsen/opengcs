@@ -3,6 +3,8 @@ from dialogs import *
 from ui.widgets.GCSWidget import *
 from ui.widgets.GCSWidgetHUD import *
 from ui.widgets.GCSWidgetMap import *
+from ui.widgets.GCSWidgetMAVNetwork import *
+from ui.widgets.GCSWidgetParameterList import *
 from PyQt4 import QtCore, QtGui
 import functools
 
@@ -41,10 +43,8 @@ class MainWindow(QMainWindow):
 
         screen = self.state.config.perspective['screen'][screenNumber]
         for w in screen['widget']:
-            # TODO passing the state variable for the first parameter crashes constructor
             get_class = lambda x: globals()[x]            
             newWidget = get_class(w['type'])(self.state, self)
-            # TODO replace hard-coded area with something pulled from XML
             location = w['location'].lower()
             if location == 'center':
                 self.setCentralWidget(newWidget)
@@ -71,12 +71,12 @@ class MainWindow(QMainWindow):
         self.actionConnections.setStatusTip('Open connections dialog')
         self.actionConnections.triggered.connect(self.onActionConnections)
 
-        # TODO change icon
+        # TODO change 'load perspective' icon
         self.actionLoadPerspective = QAction(QIcon('art/48x48/network-globe.png'), '&Load Perspective', self)
         self.actionLoadPerspective.setStatusTip('Load perspective file')
         self.actionLoadPerspective.triggered.connect(self.onActionLoadPerspective)
 
-        # TODO change icon
+        # TODO change 'save perspective' icon
         self.actionSavePerspective = QAction(QIcon('art/48x48/network-globe.png'), '&Save Perspective', self)
         self.actionSavePerspective.setStatusTip('Save perspective file')
         self.actionSavePerspective.triggered.connect(self.onActionSavePerspective)
@@ -84,6 +84,11 @@ class MainWindow(QMainWindow):
         self.actionAddWidget = QAction(QIcon('art/48x48/network-globe.png'), '&Add Widget', self)
         self.actionAddWidget.setStatusTip('Add a widget to the current screen')
         self.actionAddWidget.triggered.connect(self.onActionAddWidget)
+
+        self.action_view_fullscreen = QAction('&Full Screen',self)
+        self.action_view_fullscreen.setStatusTip('View OpenGCS in full screen mode')
+        self.action_view_fullscreen.triggered.connect(self.on_action_view_fullscreen)
+        self.action_view_fullscreen.setCheckable(True)
 
         self.actionsScreens = []
         screenNumber = 0
@@ -93,7 +98,7 @@ class MainWindow(QMainWindow):
             action.triggered.connect(functools.partial(self.onActionScreen,screenNumber))
             self.actionsScreens.append(action)
             screenNumber = screenNumber + 1
-            # TODO add keyboard shortcuts
+            # TODO add screen selection keyboard shortcuts
 
     def createToolBar(self):
         """
@@ -105,6 +110,21 @@ class MainWindow(QMainWindow):
 
         for actionScreen in self.actionsScreens:
             self.toolbar.addAction(actionScreen)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.toolbar.addWidget(spacer)
+        self.label_focused_mav = QLabel("Focused MAV: ")
+        self.combo_focused_mav = QComboBox()
+        self.label_focused_component = QLabel("Focused Component: ")
+        self.combo_focused_component = QComboBox()
+
+        self.toolbar.addWidget(self.label_focused_mav)
+        self.toolbar.addWidget(self.combo_focused_mav)
+        self.toolbar.addWidget(self.label_focused_component)
+        self.toolbar.addWidget(self.combo_focused_component)
+
 
     def createStatusBar(self):
         """
@@ -128,40 +148,46 @@ class MainWindow(QMainWindow):
 
         self.menuView.addMenu(self.chooseScreenMenu)
         self.menuView.addAction(self.actionAddWidget)
+        self.menuView.addAction(self.action_view_fullscreen)
 
         self.menuMAV = self.menubar.addMenu('&MAV')
         self.menuMAV.addAction(self.actionConnections)
 
         self.show()
 
+    def on_action_view_fullscreen(self):
+        if self.action_view_fullscreen.isChecked():
+            self.showFullScreen()
+        else:
+            self.showNormal()
+
+
     def onSettingsAction(self):
         print("Action activated")
+        # TODO move FetchParameterHelp action to somewhere that makes sense
+        self.state.FetchParameterHelp()
 
     def onActionConnections(self):
-        # TODO
         d = ConnectionsDialog(self.state)
         d.exec_()
-        d.show()
 
     def onActionScreen(self, screenNumber):
-        # TODO
-        print("TODO onActionScreen " + str(screenNumber))
+        print("DEBUG onActionScreen " + str(screenNumber))
         self.activeScreen = screenNumber
         self.DisplayScreen(self.activeScreen)
 
     def onActionSavePerspective(self):
-        # TODO
+        # TODO onActionSavePerspective
         print("TODO onActionSavePerspective")
 
     def onActionLoadPerspective(self):
-        # TODO
+        # TODO onActionLoadPerspective
         print("TODO onActionLoadPerspective")
 
     def onActionAddWidget(self):
-        # TODO
+        # TODO onActionAddWidget
         print("TODO onActionAddWidget")
         d = AddWidgetDialog(self.state)
-        d.ListWidgets()
         d.exec_()
         d.show()
 

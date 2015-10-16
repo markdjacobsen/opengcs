@@ -1,7 +1,10 @@
 from pymavlink import mavutil
 import threading
 import xmltodict
-import sys
+import sys, os, fnmatch, time
+import platform
+import multiprocessing
+import urllib2
 
 class GCSState():
     """
@@ -15,24 +18,103 @@ class GCSState():
         self.mavs = []
         self.components = []
         self.config = GCSConfig()
+        self.focusedMav = None
+
+        # These are signals that other code can subscribe to
+        self.on_focused_mav_changed = []
+        self.on_mav_registered = []
+        self.on_mav_unregistered = []
+        self.on_connection_registered = []
+        self.on_connection_unregistered = []
 
         return
+
+    def FetchParameterHelp(self):
+        files = []
+        for vehicle in ['APMrover2', 'ArduCopter', 'ArduPlane']:
+            url = 'http://autotest.diydrones.com/Parameters/%s/apm.pdef.xml' % vehicle
+            path = 'data/paramhelp/' + vehicle + '.xml'
+            files.append((url, path))
+            url = 'http://autotest.diydrones.com/%s-defaults.parm' % vehicle
+            path = 'data/paramhelp/' + vehicle + '-defaults.parm'
+            files.append((url, path))
+        try:
+            print files
+            child = multiprocessing.Process(target=download_files, args=(files,))
+            child.start()
+        except Exception as e:
+            print(e)
+
+    def RegisterConnection(self, connection):
+        """
+        Register a new connection with the GCS state
+        """
+        if connection not in self.connections:
+            self.connections.append(connection)
+            for signal in self.on_connection_registered:
+                signal()
+
+            for mav in connection.mavs:
+                if mav not in self.mavs:
+                    self.mavs.append(mav)
+                    for signal in self.on_mav_registered:
+                        signal()
+
+
+    def RegisterMAV(self, mav):
+        """
+        Register a new mav with the GCS state
+        """
+        if mav not in self.mavs:
+            self.mavs.append(mav)
+            for signal in self.on_mav_registered:
+                signal()
+
+    def UnregisterConnection(self, connection):
+        """
+        Unregister a connection and all associated mavs from the GCS state
+        """
+        if connection in self.connections:
+            # Remove all mavs associated with this connection
+            for mav in connection.mavs:
+                if mav in self.mavs:
+                    self.mavs.remove(mav)
+                    for signal in self.on_mav_unregistered:
+                        signal()
+            self.connections.remove(connection)
+            for signal in self.on_connection_unregistered:
+                signal()
+
+    def UnregisterMAV(self, mav):
+        """
+        Unregister a mav from the GCS state
+        """
+        if mav in self.mavs:
+            self.mavs.remove(mav)
+            for signal in self.on_mav_unregistered:
+                signal()
+
+    def SetFocusedMAV(self, mav):
+        if self.focusedMav != mav:
+            self.focusedMav = mav
+            for signal in self.on_focused_mav_changed:
+                signal()
 
 class Connection:
     """
     Encapsulates a connection via serial, TCP, or UDP ports, etc.
     """
-    def __init__(self, port, number):
+    def __init__(self, state, port, number):
+        self.state = state
         self.port = port
         self.number = number
         self.mavs = []
-        print(self.port)
-        print(self.number)
-        # TODO figure out how to handle these
+
+        # TODO Support UDP/TCP connections
         if port == "UDP" or port == "TCP":
             return
 
-        # TODO
+        # TODO Separate mav and connection layers
         # The vision is to ulimately split connections and MAVs, so one connection
         # can support multiple MAVs. For now, we cheat and just build a single MAV
         # per connection, with the pymavlink.mavlink_connection() object stored in
@@ -40,6 +122,10 @@ class Connection:
         newmav = MAV()
         newmav.connect(port, number)
         self.mavs.append(newmav)
+        self.state.RegisterMAV(newmav)
+        if len(self.mavs) == 1:
+            self.state.SetFocusedMAV(newmav)
+
 
 
     def getPortDead(self):
@@ -65,13 +151,23 @@ class MAV:
     Connection class.
     """
     def __init__(self):
-        self.systemid = None
+        self.systemid = 0
         self.master = None
+        self.name = "MAV"
+
+        # Properties related to parameters
+        self.mav_param_set = set()  # Index numbers of all parameters received
+        self.mav_param = {}         # Actual parameter values
+        self.mav_param_count = 0    # Total number of parameters aboard flight controller
+        self.fetch_one = 0          # ???
 
         # The class exposes a number of events that other code can subscribe to
         self.on_heartbeat = []
         self.on_param_received = []
         self.on_mission_event = []
+        self.on_params_initialized = []
+        self.on_params_changed = []
+
         # etc... these are just placeholders for now to illustrate how this might work
 
     def connect(self, port, number):
@@ -82,7 +178,7 @@ class MAV:
         self.thread.setDaemon(True)
         self.thread.start()
 
-        #self.master.message_hooks.append(self.check_heartbeat)
+        self.master.message_hooks.append(self.check_heartbeat)
         #self.master.message_hooks.append(self.log_message)
 
 
@@ -97,20 +193,47 @@ class MAV:
         any time a new message is received, and will notify all functions in the master.message_hooks list.
         """
         while True:
-            msg = self.master.recv_match(blocking=True)
-            if not msg:
+            m = self.master.recv_match(blocking=True)
+            if not m:
                 return
-            if msg.get_type() == "BAD_DATA":
-                if mavutil.all_printable(msg.data):
-                    sys.stdout.write(msg.data)
+            if m.get_type() == "BAD_DATA":
+                if mavutil.all_printable(m.data):
+                    sys.stdout.write(m.data)
                     sys.stdout.flush()
 
-            mtype = msg.get_type()
+            mtype = m.get_type()
+
+            # DEBUG: temporary code block for debugging
             if mtype == "VFR_HUD":
                 self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.master.messages)
                 self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.master.messages)
                 self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.master.messages)
-                print("Altitude: " + str(self.altitude))
+                #print("Altitude: " + str(self.altitude))
+
+            if mtype == 'PARAM_VALUE':
+                param_id = "%.16s" % m.param_id
+                # Note: the xml specifies param_index is a uint16, so -1 in that field will show as 65535
+                # We accept both -1 and 65535 as 'unknown index' to future proof us against someday having that
+                # xml fixed.
+                if m.param_index != -1 and m.param_index != 65535 and m.param_index not in self.mav_param_set:
+                    added_new_parameter = True
+                    self.mav_param_set.add(m.param_index)
+                else:
+                    added_new_parameter = False
+                if m.param_count != -1:
+                    self.mav_param_count = m.param_count
+                self.mav_param[str(param_id)] = m.param_value
+                if self.fetch_one > 0:
+                    self.fetch_one -= 1
+                    print("%s = %f" % (param_id, m.param_value))
+                if added_new_parameter and len(self.mav_param_set) == m.param_count:
+                    print("Received %u parameters" % m.param_count)
+
+                    #if self.logdir != None:
+                    #    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
+
+                    for func in self.on_params_initialized:
+                        func()
 
     def check_heartbeat(self,caller,msg):
         """
@@ -126,6 +249,232 @@ class MAV:
             print("Heartbeat received from APM (system %u component %u)\n" % (self.master.target_system, self.master.target_system))
             self.system_id = self.master.target_system
             self.master.message_hooks.remove(self.check_heartbeat)
+            self.FetchAllParameters()
+
+    def SetParameter(self, param, value):
+        if value.startswith('0x'):
+            value = int(value, base=16)
+        if not param.upper() in self.mav_param:
+            print("Unable to find parameter '%s'" % param)
+            return
+        self.mav_param.mavset(self.master, param.upper(), value, retries=3)
+
+    def FetchAllParameters(self):
+        self.master.param_fetch_all()
+        self.mav_param_set = set()
+
+# This is included for reference, from mavproxy module_param, although it is not currently used
+class ParamState:
+    '''this class is separated to make it possible to use the parameter
+       functions on a secondary connection'''
+    def __init__(self, master, mav_param, logdir, vehicle_name, parm_file):
+        self.master = master
+        self.mav_param_set = set()
+        self.mav_param_count = 0
+        self.param_period = mavutil.periodic_event(1)
+        self.fetch_one = 0
+        self.mav_param = mav_param
+        self.logdir = logdir
+        self.vehicle_name = vehicle_name
+        self.parm_file = parm_file
+
+    def handle_mavlink_packet(self, master, m):
+        '''handle an incoming mavlink packet'''
+        if m.get_type() == 'PARAM_VALUE':
+            param_id = "%.16s" % m.param_id
+            # Note: the xml specifies param_index is a uint16, so -1 in that field will show as 65535
+            # We accept both -1 and 65535 as 'unknown index' to future proof us against someday having that
+            # xml fixed.
+            if m.param_index != -1 and m.param_index != 65535 and m.param_index not in self.mav_param_set:
+                added_new_parameter = True
+                self.mav_param_set.add(m.param_index)
+            else:
+                added_new_parameter = False
+            if m.param_count != -1:
+                self.mav_param_count = m.param_count
+            self.mav_param[str(param_id)] = m.param_value
+            if self.fetch_one > 0:
+                self.fetch_one -= 1
+                print("%s = %f" % (param_id, m.param_value))
+            if added_new_parameter and len(self.mav_param_set) == m.param_count:
+                print("Received %u parameters" % m.param_count)
+                if self.logdir != None:
+                    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
+
+    def fetch_check(self):
+        '''check for missing parameters periodically'''
+        if self.param_period.trigger():
+            if self.master is None:
+                return
+            if len(self.mav_param_set) == 0:
+                self.master.param_fetch_all()
+            elif self.mav_param_count != 0 and len(self.mav_param_set) != self.mav_param_count:
+                if self.master.time_since('PARAM_VALUE') >= 1:
+                    diff = set(range(self.mav_param_count)).difference(self.mav_param_set)
+                    count = 0
+                    while len(diff) > 0 and count < 10:
+                        idx = diff.pop()
+                        self.master.param_fetch_one(idx)
+                        count += 1
+
+    def param_help_download(self):
+        '''download XML files for parameters'''
+        import multiprocessing
+        files = []
+        for vehicle in ['APMrover2', 'ArduCopter', 'ArduPlane']:
+            url = 'http://autotest.diydrones.com/Parameters/%s/apm.pdef.xml' % vehicle
+            path = 'data/paramhelp/' + vehicle + '.xml'
+            files.append((url, path))
+            url = 'http://autotest.diydrones.com/%s-defaults.parm' % vehicle
+            path = 'data/paramhelp/' + vehicle + '-defaults.parm'
+            files.append((url, path))
+        try:
+            child = multiprocessing.Process(target=download_files, args=(files,))
+            child.start()
+        except Exception as e:
+            print(e)
+
+    def param_help(self, args):
+        '''show help on a parameter'''
+        if len(args) == 0:
+            print("Usage: param help PARAMETER_NAME")
+            return
+        if self.vehicle_name is None:
+            print("Unknown vehicle type")
+            return
+        path = dot_opengcs("%s.xml" % self.vehicle_name)
+        if not os.path.exists(path):
+            print("Please run 'param download' first (vehicle_name=%s)" % self.vehicle_name)
+            return
+        xml = open(path).read()
+        from lxml import objectify
+        objectify.enable_recursive_str()
+        tree = objectify.fromstring(xml)
+        htree = {}
+        for p in tree.vehicles.parameters.param:
+            n = p.get('name').split(':')[1]
+            htree[n] = p
+        for lib in tree.libraries.parameters:
+            for p in lib.param:
+                n = p.get('name')
+                htree[n] = p
+        for h in args:
+            if h in htree:
+                help = htree[h]
+                print("%s: %s\n" % (h, help.get('humanName')))
+                print(help.get('documentation'))
+                try:
+                    vchild = help.getchildren()[0]
+                    print("\nValues: ")
+                    for v in vchild.value:
+                        print("\t%s : %s" % (v.get('code'), str(v)))
+                except Exception as e:
+                    pass
+            else:
+                print("Parameter '%s' not found in documentation" % h)
+
+    def handle_command(self, mpstate, args):
+        '''handle parameter commands'''
+        param_wildcard = "*"
+        usage="Usage: param <fetch|set|show|load|preload|forceload|diff|download|help>"
+        if len(args) < 1:
+            print(usage)
+            return
+        if args[0] == "fetch":
+            if len(args) == 1:
+                self.master.param_fetch_all()
+                self.mav_param_set = set()
+                print("Requested parameter list")
+            else:
+                for p in self.mav_param.keys():
+                    if fnmatch.fnmatch(p, args[1].upper()):
+                        self.master.param_fetch_one(p)
+                        self.fetch_one += 1
+                        print("Requested parameter %s" % p)
+        elif args[0] == "save":
+            if len(args) < 2:
+                print("usage: param save <filename> [wildcard]")
+                return
+            if len(args) > 2:
+                param_wildcard = args[2]
+            else:
+                param_wildcard = "*"
+            self.mav_param.save(args[1], param_wildcard, verbose=True)
+        elif args[0] == "diff":
+            wildcard = '*'
+            if len(args) < 2 or args[1].find('*') != -1:
+                if self.vehicle_name is None:
+                    print("Unknown vehicle type")
+                    return
+                filename = dot_opengcs("%s-defaults.parm" % self.vehicle_name)
+                if not os.path.exists(filename):
+                    print("Please run 'param download' first (vehicle_name=%s)" % self.vehicle_name)
+                    return
+                if len(args) >= 2:
+                    wildcard = args[1]
+            else:
+                filename = args[1]
+                if len(args) == 3:
+                    wildcard = args[2]
+            print("%-16.16s %12.12s %12.12s" % ('Parameter', 'Defaults', 'Current'))
+            self.mav_param.diff(filename, wildcard=wildcard)
+        elif args[0] == "set":
+            if len(args) < 2:
+                print("Usage: param set PARMNAME VALUE")
+                return
+            if len(args) == 2:
+                self.mav_param.show(args[1])
+                return
+            param = args[1]
+            value = args[2]
+            if value.startswith('0x'):
+                value = int(value, base=16)
+            if not param.upper() in self.mav_param:
+                print("Unable to find parameter '%s'" % param)
+                return
+            self.mav_param.mavset(self.master, param.upper(), value, retries=3)
+
+            #if (param.upper() == "WP_LOITER_RAD" or param.upper() == "LAND_BREAK_PATH"):
+            #    #need to redraw rally points
+            #    mpstate.module('rally').rallyloader.last_change = time.time()
+            #    #need to redraw loiter points
+            #    mpstate.module('wp').wploader.last_change = time.time()
+
+        elif args[0] == "load":
+            if len(args) < 2:
+                print("Usage: param load <filename> [wildcard]")
+                return
+            if len(args) > 2:
+                param_wildcard = args[2]
+            else:
+                param_wildcard = "*"
+            self.mav_param.load(args[1], param_wildcard, self.master)
+        elif args[0] == "preload":
+            if len(args) < 2:
+                print("Usage: param preload <filename>")
+                return
+            self.mav_param.load(args[1])
+        elif args[0] == "forceload":
+            if len(args) < 2:
+                print("Usage: param forceload <filename> [wildcard]")
+                return
+            if len(args) > 2:
+                param_wildcard = args[2]
+            else:
+                param_wildcard = "*"
+            self.mav_param.load(args[1], param_wildcard, self.master, check=False)
+        elif args[0] == "download":
+            self.param_help_download()
+        elif args[0] == "help":
+            self.param_help(args[1:])
+        elif args[0] == "show":
+            if len(args) > 1:
+                pattern = args[1]
+            else:
+                pattern = "*"
+            self.mav_param.show(pattern)
+        else:
+            print(usage)
 
 class GCSConfig:
     def __init__(self):
@@ -147,7 +496,7 @@ class GCSConfig:
         """
         Save application configuration to an XML file
         """
-        # TODO implement
+        # TODO implement save opengcs settings
         return
 
     def load_perspective(self, filename):
@@ -163,8 +512,64 @@ class GCSConfig:
         """
         Save this perspective to an XML file
         """
-        # TODO implement
+        # TODO implement save perspective
         return
+
+def dot_opengcs(name):
+    '''return a path to store mavproxy data'''
+    # Taken from mavproxy mp_util.py
+    dir = os.path.join(os.environ['HOME'], '.opengcs')
+    mkdir_p(dir)
+    return os.path.join(dir, name)
+
+def mkdir_p(dir):
+    '''like mkdir -p'''
+    # Taken from mavproxy mp_util.py
+    if not dir:
+        return
+    if dir.endswith("/") or dir.endswith("\\"):
+        mkdir_p(dir[:-1])
+        return
+    if os.path.isdir(dir):
+        return
+    mkdir_p(os.path.dirname(dir))
+    try:
+        os.mkdir(dir)
+    except Exception:
+        pass
+
+
+# TODO: bug in this code block. The urllib2.urlopen call hangs forever
+def download_url(url):
+    '''download a URL and return the content'''
+    # Taken from mavproxy mp_util.py
+    try:
+        print(url)
+        #resp = urllib2.urlopen(url)
+        resp = None
+
+        resp = urllib2.urlopen(url, None, 3)
+        print("DEBUG url open")
+        headers = resp.info()
+        print("DEBUG download_url end try block")
+    except urllib2.URLError as e:
+        print('Error downloading %s' % url)
+        return None
+    return resp.read()
+
+
+def download_files(files):
+    '''download an array of files'''
+    # Taken from mavproxy mp_util.py
+    for (url, file) in files:
+        print("Downloading %s as %s" % (url, file))
+        data = download_url(url)
+        if data is None:
+            continue
+        try:
+            open(file, mode='w').write(data)
+        except Exception as e:
+            print("Failed to save to %s : %s" % (file, e))
 
 if __name__ == "__main__":
     mav1 = MAV()

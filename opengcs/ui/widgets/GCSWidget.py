@@ -4,6 +4,10 @@ This is the root class for all opengcs widgets
 
 from PyQt4 import QtCore, QtGui
 
+class MAVTarget:
+    ALL = -1
+    FOCUSED = -2
+
 
 class GCSWidget (QtGui.QDockWidget):
 
@@ -16,12 +20,67 @@ class GCSWidget (QtGui.QDockWidget):
     def __init__(self, state, parent):
         super(GCSWidget, self).__init__("TODO", parent)
         self.state = state
+        self.target = MAVTarget.FOCUSED
         self.setWindowTitle("Blank Widget (Base Class)")
+        self.title = self.titleBarWidget()
 
-        self.setWidget(QtGui.QLabel("Inherit from GCSWidget to create your own widget"));
-        #self.mousePressEvent.connect(self.on_mouse)
+        self.create_menu()
+
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_menu)
+
+    def create_menu(self):
+
+        self.action_floating = QtGui.QAction('&Float Mode', self)
+        #actionFloating.setStatusTip('Open the settings menu')
+        #actionFloating.setToolTip(('Settings'))
+        self.action_floating.triggered.connect(self.on_action_floating)
+        self.action_floating.setCheckable(True)
+
+        self.action_tabbed = QtGui.QAction('&Tabbed Mode', self)
+        self.action_tabbed.triggered.connect(self.on_action_tabbed)
+        self.action_tabbed.setCheckable(True)
+
+        self.action_titlebar = QtGui.QAction('&Show Title Bar', self)
+        self.action_titlebar.triggered.connect(self.on_action_titlebar)
+        self.action_titlebar.setCheckable(True)
+
+    def show_menu(self):
+        menu = QtGui.QMenu()
+        menu.addAction(self.action_floating)
+        menu.addAction(self.action_tabbed)
+        menu.addAction(self.action_titlebar)
+        selectedItem = menu.exec_(QtGui.QCursor.pos())
+
+    def on_action_floating(self):
+        # TODO decide how to handle central widgets, which can be floated but not unfloated
+        self.setFloating(self.action_floating.isChecked())
+
+    def on_action_tabbed(self):
+        # TODO on_action_tabbed
+        print("on_action_tabbed")
+        #self.tabifyDockWidget()
+
+    def on_action_titlebar(self):
+        # TODO on_action_titlebar is not working
+        # Need to figure out which flags to clear/set to get the right behavior
+        print("on_action_titlebar")
+        if self.action_titlebar.isChecked() == False:
+            print("hide")
+            self.setTitleBarWidget(None)
+            #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        else:
+            print("show")
+            self.setTitleBarWidget(self.title)
+            #self.setWindowFlags(None)
+
+
+
+
+
 
     def mousePressEvent(self, QMouseEvent):
+        # DEBUG this exists to assist with layout management
         print("Features" + str(self.features()))
         print("Height: " + str(self.height()), "Width: " + str(self.width()))
         print("Is floating: " + str(self.isFloating()))

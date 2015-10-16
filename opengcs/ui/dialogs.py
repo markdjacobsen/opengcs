@@ -109,34 +109,24 @@ class ConnectionsDialog (QDialog):
 
     def on_button_ok(self):
         self.close()
+        print("closing")
 
     def on_button_connect(self):
-        # TODO
-        #mav1 = MAV()
-        #mav1.connect('/dev/tty.usbmodemfa141',115200)
-        #print("Connected")
-        #return
-        #conn = Connection('/dev/tty.usbmodemfa141',115200)
-        #self.state.connections.append(conn)
-        #self.UpdatePorts()
-        #return
-
-
-        print("on_button_connect()")
         conntype = self.newConnectionCombo.currentText()
         conn = None
 
         if conntype == "TCP" or conntype == "UDP":
             try:
-                conn = Connection(str(self.newConnectionCombo.currentText()), int(self.newPortText.text()))
+                conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortText.text()))
             except ValueError:
                 msgBox = QMessageBox()
                 msgBox.setText("Please enter a valid port number")
                 msgBox.exec_()
                 return
         else:
+
             try:
-                conn = Connection(str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
+                conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
             except:
                 msgBox = QMessageBox()
                 msgBox.setText("Unexpected error connecting to serial port")
@@ -146,6 +136,11 @@ class ConnectionsDialog (QDialog):
         self.state.connections.append(conn)
 
         self.UpdatePorts()
+
+        # DEBUG
+        print(self.state.connections)
+        print(self.state.mavs)
+        print(conn.mavs)
 
 
     def on_button_disconnect(self, row):
@@ -162,6 +157,8 @@ class ConnectionsDialog (QDialog):
             self.newPortText.setVisible(False)
 
 class AddWidgetDialog (QDialog):
+    # TODO allow user to specify location for widget, floating/non floating, tabbed/non tabbed
+    # TODO consider having widget settings panel on this window
     def __init__(self, state, parent=None):
         super(AddWidgetDialog, self).__init__(parent)
         self.state = state
@@ -216,17 +213,22 @@ class AddWidgetDialog (QDialog):
         f = [k for k in f if 'GCSWidget.py' not in k]
 
 
+        # TODO: import classes of widgets in the ui/widgets folder, not just modules
+        # possibly helpful: http://stackoverflow.com/questions/547829/how-to-dynamically-load-a-python-class
         widgetModules = []
         for i in f:
             modulename = i[:-3]
             widgetModules.append(__import__(modulename))
+        print(widgetModules)
 
         subs = GCSWidget.__subclasses__()
+        # DEBUG
+        print(subs)
         return subs
 
 
     def on_button_ok(self):
-        # TODO
+        # TODO add widget upon closing dialog
         self.close()
 
     def on_button_cancel(self):
