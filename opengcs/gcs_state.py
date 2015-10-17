@@ -7,6 +7,7 @@ import sys, os, fnmatch, time
 import platform
 import multiprocessing
 import urllib2
+from PyQt4.QtCore import *
 
 class GCSState():
     """
@@ -182,6 +183,32 @@ class MAVNetwork:
             for signal in self.on_network_changed:
                 signal()
 
+class MavlinkThread(QThread):
+    """
+    This class exists to read incoming mavlink messages in a secondary thread.
+    Each Connection spawns one of these threads.
+    However, all of the GUI updating needs to happen within the primary thread,
+    so all this does is send a signal back to the primary thread any time a
+    message is received. Those messages are processed by the Connection
+    object.
+    """
+    def __init__(self, master):
+        super(MavlinkThread, self).__init__()
+        self.master = master
+
+    def run(self):
+
+        while True:
+            m = self.master.recv_match(blocking=True)
+            if not m:
+                return
+            if m.get_type() == "BAD_DATA":
+                if mavutil.all_printable(m.data):
+                    sys.stdout.write(m.data)
+                    sys.stdout.flush()
+            self.emit(SIGNAL("messageReceived"), m)
+
+
 class Connection:
     """
     Encapsulates a connection via serial, TCP, or UDP ports, etc.
@@ -199,9 +226,12 @@ class Connection:
         print("Connecting to " + port)
         self.master = mavutil.mavlink_connection(port, baud=number)
 
-        self.thread = threading.Thread(target=self.process_messages)
-        self.thread.setDaemon(True)
-        self.thread.start()
+        # Run port monitoring on a secondary thread. Any time a mavlink message is received,
+        # it signals for the process_messages functionb below to handle the message on the
+        # primary thread.
+        thread = MavlinkThread(self.master)
+        thread.connect(thread, SIGNAL("messageReceived"), self.process_messages)
+        thread.start()
 
         self.state.mav_network.add_connection(self)
 
@@ -210,38 +240,30 @@ class Connection:
             print(str(msg))
         return
 
-    def process_messages(self):
+    def process_messages(self, m):
         """
         This runs continuously. The mavutil.recv_match() function will call mavutil.post_message()
         any time a new message is received. It will then forward messages to the process_messages()
         method of the MAV that has a matching system ID.
         """
-        while True:
-            m = self.master.recv_match(blocking=True)
-            if not m:
-                return
-            if m.get_type() == "BAD_DATA":
-                if mavutil.all_printable(m.data):
-                    sys.stdout.write(m.data)
-                    sys.stdout.flush()
 
-            system_id = m.get_header().srcSystem
+        system_id = m.get_header().srcSystem
 
-            # If the source system is 0, every MAV processes it
-            # TODO I'm not sure if MAVs ever have a source system of 0
-            if system_id == 0:
-                for mavkey in self.mavs:
-                    self.mavs[mavkey].process_messages(m)
-            # If the source MAV has already been registered, forward the message to that MAV object
-            elif system_id in self.mavs:
-                self.mavs[system_id].process_messages(m)
-            # Otherwise, it's a new MAV and we need to add it
-            else:
-                newmav = MAV(self, system_id)
-                self.mavs[system_id] = newmav
-                self.state.mav_network.add_mav(newmav)
-                print(self.state.mav_network.mavs)
-                newmav.process_messages(m)
+        # If the source system is 0, every MAV processes it
+        # TODO I'm not sure if MAVs ever have a source system of 0
+        if system_id == 0:
+            for mavkey in self.mavs:
+                self.mavs[mavkey].process_messages(m)
+        # If the source MAV has already been registered, forward the message to that MAV object
+        elif system_id in self.mavs:
+            self.mavs[system_id].process_messages(m)
+        # Otherwise, it's a new MAV and we need to add it
+        else:
+            newmav = MAV(self, system_id)
+            self.mavs[system_id] = newmav
+            self.state.mav_network.add_mav(newmav)
+            print(self.state.mav_network.mavs)
+            newmav.process_messages(m)
 
     def is_port_dead(self):
         """
