@@ -78,10 +78,25 @@ class GCSWidget (QtGui.QDockWidget):
             #self.setWindowFlags(None)
 
     def catch_focused_mav_changed(self):
+        """
+        Called automatically when the focused mav is changed.
+
+        The default GCS widget behavior is to call the refresh() function.
+        Widgets inheriting from GCSWidget may override this to customize
+        their own behavior.
+        """
         self.refresh()
 
     def catch_network_changed(self):
-        "Widget Changed"
+        """
+        Called automatically when the structure of the MAV network is
+        changed (MAV or component is added or removed).
+
+        The default GCS widget behavior is to call the refresh() function.
+        Widgets inheriting from GCSWidget may override this to customize
+        their own behavior.
+        """
+        self.refresh()
         return
 
 

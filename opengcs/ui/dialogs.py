@@ -18,62 +18,62 @@ class ConnectionsDialog (QDialog):
     def __init__(self, state, parent=None):
         super(ConnectionsDialog, self).__init__(parent)
         self.state = state
-        self.InitUI()
+        self.init_ui()
 
-    def InitUI(self):
+    def init_ui(self):
         self.setWindowTitle('Edit Connections')
         self.resize(700,200)
 
-        openConnectionsLabel = QLabel('Open connections:', self)
-        self.connectionTable = QTableWidget(1,4,self)
-        self.connectionTable.setHorizontalHeaderLabels(['Status','Port','Number','Disconnect'])
-        self.connectionTable.horizontalHeader().setResizeMode(0,QHeaderView.ResizeToContents)
-        self.connectionTable.horizontalHeader().setResizeMode(1,QHeaderView.Stretch)
-        newConnectionLabel = QLabel('Open new connection:', self)
-        self.newConnectionCombo = QComboBox(self)
+        open_connections_label = QLabel('Open connections:', self)
+        self.table_connections = QTableWidget(1,4,self)
+        self.table_connections.setHorizontalHeaderLabels(['Status','Port','Number','Disconnect'])
+        self.table_connections.horizontalHeader().setResizeMode(0,QHeaderView.ResizeToContents)
+        self.table_connections.horizontalHeader().setResizeMode(1,QHeaderView.Stretch)
+        new_connection_label = QLabel('Open new connection:', self)
+        self.combo_new_connection = QComboBox(self)
 
-        self.newPortCombo = QComboBox(self)
-        self.newPortCombo.addItem('56700')
-        self.newPortCombo.addItem('115200')
+        self.combo_new_port = QComboBox(self)
+        self.combo_new_port.addItem('56700')
+        self.combo_new_port.addItem('115200')
 
-        self.newPortText = QLineEdit(self)
-        self.newPortText.setText('14550')
-        self.newPortText.setVisible(False)
+        self.lineedit_new_port = QLineEdit(self)
+        self.lineedit_new_port.setText('14550')
+        self.lineedit_new_port.setVisible(False)
 
-        connectButton = QPushButton('&Connect', self)
-        connectButton.clicked.connect(self.on_button_connect)
+        button_connect = QPushButton('&Connect', self)
+        button_connect.clicked.connect(self.on_button_connect)
 
 
-        OKButton = QPushButton('&OK', self)
-        OKButton.clicked.connect(self.on_button_ok)
+        button_ok = QPushButton('&OK', self)
+        button_ok.clicked.connect(self.on_button_ok)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(self.newConnectionCombo)
-        hbox.addWidget(self.newPortCombo)
-        hbox.addWidget(self.newPortText)
-        hbox.addWidget(connectButton)
+        hbox.addWidget(self.combo_new_connection)
+        hbox.addWidget(self.combo_new_port)
+        hbox.addWidget(self.lineedit_new_port)
+        hbox.addWidget(button_connect)
 
 
         hbox2 = QHBoxLayout()
         hbox2.addStretch(1)
-        hbox2.addWidget(OKButton)
+        hbox2.addWidget(button_ok)
 
         vbox = QVBoxLayout()
-        vbox.addWidget(openConnectionsLabel)
-        vbox.addWidget(self.connectionTable)
-        vbox.addWidget(newConnectionLabel)
+        vbox.addWidget(open_connections_label)
+        vbox.addWidget(self.table_connections)
+        vbox.addWidget(new_connection_label)
         vbox.addLayout(hbox)
         vbox.addLayout(hbox2)
 
         self.setLayout(vbox)
 
-        self.UpdatePorts()
+        self.update_ports()
 
-    def UpdatePorts(self):
+    def update_ports(self):
         self.serialports = serial_ports()
 
-        self.connectionTable.clearContents()
-        self.connectionTable.setRowCount(len(self.state.mav_network.connections))
+        self.table_connections.clearContents()
+        self.table_connections.setRowCount(len(self.state.mav_network.connections))
 
         self.openports = []
 
@@ -88,21 +88,21 @@ class ConnectionsDialog (QDialog):
                 status.setIcon(QIcon('art/16x16/dialog-clean.png'))
             else:
                 status.setIcon(QIcon('art/16x16/dialog-error-2.png'))
-            self.connectionTable.setItem(row,0,status)
-            self.connectionTable.setItem(row,1,QTableWidgetItem(conn.port))
-            self.connectionTable.setItem(row,2,QTableWidgetItem(conn.number))
+            self.table_connections.setItem(row,0,status)
+            self.table_connections.setItem(row,1,QTableWidgetItem(conn.port))
+            self.table_connections.setItem(row,2,QTableWidgetItem(conn.number))
             btnDisconnect = QPushButton('Disconnect')
-            self.connectionTable.setCellWidget(row,3,btnDisconnect)
+            self.table_connections.setCellWidget(row,3,btnDisconnect)
             btnDisconnect.clicked.connect(functools.partial(self.on_button_disconnect, row))
             row = row + 1
 
-        self.newConnectionCombo.clear()
+        self.combo_new_connection.clear()
         for port in self.serialports:
             if port not in self.openports:
-                self.newConnectionCombo.addItem(port)
-        self.newConnectionCombo.addItem('TCP')
-        self.newConnectionCombo.addItem('UDP')
-        self.newConnectionCombo.editTextChanged.connect(self.on_connection_combo_changed)
+                self.combo_new_connection.addItem(port)
+        self.combo_new_connection.addItem('TCP')
+        self.combo_new_connection.addItem('UDP')
+        self.combo_new_connection.editTextChanged.connect(self.on_connection_combo_changed)
 
 
 
@@ -112,12 +112,12 @@ class ConnectionsDialog (QDialog):
         print("closing")
 
     def on_button_connect(self):
-        conntype = self.newConnectionCombo.currentText()
+        conntype = self.combo_new_connection.currentText()
         conn = None
 
         if conntype == "TCP" or conntype == "UDP":
             try:
-                conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortText.text()))
+                conn = Connection(self.state, str(self.combo_new_connection.currentText()), int(self.lineedit_new_port.text()))
             except ValueError:
                 msgBox = QMessageBox()
                 msgBox.setText("Please enter a valid port number")
@@ -127,7 +127,7 @@ class ConnectionsDialog (QDialog):
             # TODO: I temporarily moved the Connection constructor out of a 'try' block, because it is causing
             # all errors in message processing to be captured by try. I need to figure out how to avoid this,
             # and then move the connection step back into a try block.
-            conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
+            conn = Connection(self.state, str(self.combo_new_connection.currentText()), int(self.combo_new_port.currentText()))
 
             #try:
             #    conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
@@ -139,20 +139,20 @@ class ConnectionsDialog (QDialog):
 
         self.state.mav_network.add_connection(conn)
 
-        self.UpdatePorts()
+        self.update_ports()
 
     def on_button_disconnect(self, row):
         print "Disconnect " + str(row)
 
     def on_connection_combo_changed(self):
         print("combo changed")
-        conntype = self.newConnectionCombo.currentText()
+        conntype = self.combo_new_connection.currentText()
         if conntype == "TCP" or conntype == "UDP":
-            self.newPortCombo.setVisible(False)
-            self.newPortText.setVisible(True)
+            self.combo_new_port.setVisible(False)
+            self.lineedit_new_port.setVisible(True)
         else:
-            self.newPortCombo.setVisible(True)
-            self.newPortText.setVisible(False)
+            self.combo_new_port.setVisible(True)
+            self.lineedit_new_port.setVisible(False)
 
 class AddWidgetDialog (QDialog):
     # TODO allow user to specify location for widget, floating/non floating, tabbed/non tabbed
@@ -160,30 +160,30 @@ class AddWidgetDialog (QDialog):
     def __init__(self, state, parent=None):
         super(AddWidgetDialog, self).__init__(parent)
         self.state = state
-        self.InitUI()
+        self.init_ui()
 
-    def InitUI(self):
+    def init_ui(self):
         self.setWindowTitle('Add a widget')
         self.resize(700,200)
 
         self.listWidget = QListWidget(self)
-        widgets = self.ListWidgets()
+        widgets = self.list_widgets()
         for w in widgets:
             i = QListWidgetItem(w.widgetName)
             self.listWidget.addItem(i)
 
         label = QLabel("Select a widget to add to the current screen")
 
-        CancelButton = QPushButton('&Cancel', self)
-        CancelButton.clicked.connect(self.on_button_cancel)
+        button_cancel = QPushButton('&Cancel', self)
+        button_cancel.clicked.connect(self.on_button_cancel)
 
-        OKButton = QPushButton('&OK', self)
-        OKButton.clicked.connect(self.on_button_ok)
+        button_ok = QPushButton('&OK', self)
+        button_ok.clicked.connect(self.on_button_ok)
 
         hbox1 = QHBoxLayout()
         hbox1.addStretch(1)
-        hbox1.addWidget(CancelButton)
-        hbox1.addWidget(OKButton)
+        hbox1.addWidget(button_cancel)
+        hbox1.addWidget(button_ok)
 
         vbox = QVBoxLayout()
         vbox.addWidget(label)
@@ -192,7 +192,7 @@ class AddWidgetDialog (QDialog):
 
         self.setLayout(vbox)
 
-    def ListWidgets(self):
+    def list_widgets(self):
         sys.path.append("ui/widgets/")
 
         # Recursive file listing code from

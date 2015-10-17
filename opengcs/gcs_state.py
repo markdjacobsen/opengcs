@@ -130,6 +130,7 @@ class MAVNetwork:
                     for signal in self.on_mav_added:
                         signal()
 
+            # TODO Cannot call GUI callback functions from within a mavlink thread
             for signal in self.on_network_changed:
                 signal()
 
@@ -139,6 +140,8 @@ class MAVNetwork:
         """
         if mav not in self.mavs:
             self.mavs.append(mav)
+
+            # TODO Cannot call GUI callback functions from within a mavlink thread
             for signal in self.on_mav_added:
                 signal()
             for signal in self.on_network_changed:
@@ -152,6 +155,7 @@ class MAVNetwork:
         """
         Unregister a connection and all associated mavs from the GCS state
         """
+        # TODO Cannot call GUI callback functions from within a mavlink thread
         if connection in self.connections:
             # Remove all mavs associated with this connection
             for mavkey in connection.mavs:
@@ -170,6 +174,7 @@ class MAVNetwork:
         """
         Unregister a mav from the GCS state
         """
+        # TODO Cannot call GUI callback functions from within a mavlink thread
         if mav in self.mavs:
             self.mavs.remove(mav)
             for signal in self.on_mav_removed:
@@ -277,6 +282,8 @@ class MAV:
         self.on_params_initialized = []
         self.on_params_changed = []
 
+    def __str__(self):
+        return str(self.system_id)
 
     def process_messages(self, m):
 
@@ -317,6 +324,7 @@ class MAV:
                #if self.logdir != None:
                 #    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
 
+            # TODO Cannot call GUI callback functions from within a mavlink thread
                 for func in self.on_params_initialized:
                     func()
 

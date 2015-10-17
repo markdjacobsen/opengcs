@@ -11,6 +11,7 @@ class GCSWidgetParameterList (GCSWidget):
     widgetName = "ParameterList"
 
     def __init__(self, state, parent):
+
         super(GCSWidgetParameterList, self).__init__(state, parent)
 
         self.setWindowTitle("Parameter List")
@@ -20,89 +21,77 @@ class GCSWidgetParameterList (GCSWidget):
         self.all_params = []
         self.filtered_params = []
 
-        self.InitUI()
+        self.init_ui()
         #self.Refresh()
 
-    def InitUI(self):
-        self.paramTable = QTableWidget(0,2,self)
-        self.paramTable.setHorizontalHeaderLabels(['Parameter','Value'])
-        self.paramTable.horizontalHeader().setResizeMode(0,QHeaderView.Stretch)
-        self.paramTable.horizontalHeader().setResizeMode(1,QHeaderView.ResizeToContents)
+    def init_ui(self):
 
-        self.filterLineEdit = QLineEdit()
-        self.filterLineEdit.textChanged.connect(self.on_filter_changed)
-        self.settingsButton = QPushButton('...')
+        self.table_params = QTableWidget(0,2,self)
+        self.table_params.setHorizontalHeaderLabels(['Parameter','Value'])
+        self.table_params.horizontalHeader().setResizeMode(0,QHeaderView.Stretch)
+        self.table_params.horizontalHeader().setResizeMode(1,QHeaderView.ResizeToContents)
 
-
-
-
+        self.lineedit_filter = QLineEdit()
+        self.lineedit_filter.textChanged.connect(self.on_filter_changed)
+        self.button_settings = QPushButton('...')
 
         # Create toolbar
         self.toolbar = QToolBar()
         self.toolbar.setIconSize(QtCore.QSize(16,16))
-        self.toolbar.addWidget(self.filterLineEdit)
-        self.toolbar.addWidget(self.settingsButton)
+        self.toolbar.addWidget(self.lineedit_filter)
+        self.toolbar.addWidget(self.button_settings)
 
         vbox = QVBoxLayout()
-        vbox.addWidget(self.paramTable)
+        vbox.addWidget(self.table_params)
         vbox.setMenuBar(self.toolbar)
-
-
-        #self.action_settings = QAction('...', self)
-        #self.action_settings.setStatusTip('Open settings')
-        #self.action_settings.triggered.connect(self.on_button_settings)
-
-        #self.toolbar.addAction(self.action_settings)
-
 
         mylayout = QWidget()
         mylayout.setLayout(vbox)
         self.setWidget(mylayout)
-        #self.setLayout(vbox)
-        #self.setWidget(vbox)
-
 
         return
 
     def on_filter_changed(self):
-        self.ApplyFilter()
 
-    def Refresh(self):
-        self.paramTable.clearContents()
+        self.apply_filter()
+
+    def refresh(self):
+        print("refresh")
+        self.table_params.clearContents()
 
         if self.target == MAVTarget.FOCUSED:
-            mav = self.state.focusedMav
+            mav = self.state.focused_mav
         else:
             # TODO handle specific mav assignments
             return
 
         self.all_params = mav.mav_param
 
-        self.paramTable.setRowCount(mav.mav_param_count)
+        self.table_params.setRowCount(mav.mav_param_count)
         row = 0
         for key in mav.mav_param:
-            self.paramTable.setItem(row,0,QTableWidgetItem(key))
-            self.paramTable.setItem(row,1,QTableWidgetItem(str(mav.mav_param[key])))
+            self.table_params.setItem(row,0,QTableWidgetItem(key))
+            self.table_params.setItem(row,1,QTableWidgetItem(str(mav.mav_param[key])))
             row = row + 1
 
-        self.paramTable.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        self.table_params.sortByColumn(0, QtCore.Qt.AscendingOrder)
 
-    def ApplyFilter(self):
-        pattern = str(self.filterLineEdit.text())
+    def apply_filter(self):
+        pattern = str(self.lineedit_filter.text())
 
-        if self.paramTable.rowCount() == 0:
+        if self.table_params.rowCount() == 0:
             return
-        for i in range(0,self.paramTable.rowCount()):
-            if len(fnmatch.filter([self.paramTable.item(i,0).text()], pattern)) > 0:
-                self.paramTable.setRowHidden(i, False)
+        for i in range(0,self.table_params.rowCount()):
+            if len(fnmatch.filter([self.table_params.item(i,0).text()], pattern)) > 0:
+                self.table_params.setRowHidden(i, False)
             else:
-                self.paramTable.setRowHidden(i,True)
+                self.table_params.setRowHidden(i,True)
 
 
     def mav_changed(self):
         mav = self.state.focusedMav
-        mav.on_params_initialized.append(self.Refresh)
-        self.Refresh()
+        mav.on_params_initialized.append(self.refresh)
+        self.refresh()
 
 
 
