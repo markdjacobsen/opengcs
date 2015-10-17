@@ -16,6 +16,10 @@ class MainWindow(QMainWindow):
         self.state = state
         self.initUI()
 
+        self.state.on_focused_mav_changed.append(self.catch_focused_mav_changed)
+        self.state.on_focused_component_changed.append(self.catch_focused_component_changed)
+        self.state.mav_network.on_network_changed.append(self.catch_network_changed)
+
     def initUI(self):
         """
         Initialize the user interface for the main window
@@ -24,15 +28,15 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(self.state.config.settings['windowtitle'])
         self.setWindowIcon(QIcon(self.state.config.settings['windowicon']))
 
-        self.createActions()
-        self.createToolBar()
-        self.createStatusBar()
-        self.createMenu()
+        self.create_actions()
+        self.create_toolbar()
+        self.create_statusbar()
+        self.create_menu()
 
         self.activeScreen = 0
-        self.DisplayScreen(self.activeScreen)
+        self.display_screen(self.activeScreen)
 
-    def DisplayScreen(self, screenNumber):
+    def display_screen(self, screenNumber):
         """
         Display the given screen number, indexed from 0. 0 is the default screen.
         """
@@ -57,7 +61,7 @@ class MainWindow(QMainWindow):
             else:
                 self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, newWidget)
 
-    def createActions(self):
+    def create_actions(self):
         """
         Create the PyQt actions used by the main window
         """
@@ -65,25 +69,25 @@ class MainWindow(QMainWindow):
         self.actionSettings = QAction(QIcon('art/48x48/applications-system-4.png'), '&Settings', self)
         self.actionSettings.setStatusTip('Open the settings menu')
         self.actionSettings.setToolTip(('Settings'))
-        self.actionSettings.triggered.connect(self.onSettingsAction)
+        self.actionSettings.triggered.connect(self.on_action_settings)
 
         self.actionConnections = QAction(QIcon('art/48x48/network-globe.png'), '&Connections', self)
         self.actionConnections.setStatusTip('Open connections dialog')
-        self.actionConnections.triggered.connect(self.onActionConnections)
+        self.actionConnections.triggered.connect(self.on_action_connections)
 
         # TODO change 'load perspective' icon
         self.actionLoadPerspective = QAction(QIcon('art/48x48/network-globe.png'), '&Load Perspective', self)
         self.actionLoadPerspective.setStatusTip('Load perspective file')
-        self.actionLoadPerspective.triggered.connect(self.onActionLoadPerspective)
+        self.actionLoadPerspective.triggered.connect(self.on_action_load_perspective)
 
         # TODO change 'save perspective' icon
         self.actionSavePerspective = QAction(QIcon('art/48x48/network-globe.png'), '&Save Perspective', self)
         self.actionSavePerspective.setStatusTip('Save perspective file')
-        self.actionSavePerspective.triggered.connect(self.onActionSavePerspective)
+        self.actionSavePerspective.triggered.connect(self.on_action_save_perspective)
 
         self.actionAddWidget = QAction(QIcon('art/48x48/network-globe.png'), '&Add Widget', self)
         self.actionAddWidget.setStatusTip('Add a widget to the current screen')
-        self.actionAddWidget.triggered.connect(self.onActionAddWidget)
+        self.actionAddWidget.triggered.connect(self.on_action_add_widget)
 
         self.action_view_fullscreen = QAction('&Full Screen',self)
         self.action_view_fullscreen.setStatusTip('View OpenGCS in full screen mode')
@@ -95,12 +99,12 @@ class MainWindow(QMainWindow):
         for screen in self.state.config.perspective['screen']:
             action = QAction(QIcon(screen['icon']), screen['name'], self)
             action.setToolTip(screen['tooltip'])
-            action.triggered.connect(functools.partial(self.onActionScreen,screenNumber))
+            action.triggered.connect(functools.partial(self.on_action_screen,screenNumber))
             self.actionsScreens.append(action)
             screenNumber = screenNumber + 1
             # TODO add screen selection keyboard shortcuts
 
-    def createToolBar(self):
+    def create_toolbar(self):
         """
         Create the toolbar items used by the main window
         """
@@ -126,13 +130,13 @@ class MainWindow(QMainWindow):
         self.toolbar.addWidget(self.combo_focused_component)
 
 
-    def createStatusBar(self):
+    def create_statusbar(self):
         """
         Create the status bar used by the main window
         """
         self.statusBar().showMessage('')
 
-    def createMenu(self):
+    def create_menu(self):
         """
         Create the menu used by the main window
         """
@@ -162,33 +166,46 @@ class MainWindow(QMainWindow):
             self.showNormal()
 
 
-    def onSettingsAction(self):
+    def on_action_settings(self):
         print("Action activated")
         # TODO move FetchParameterHelp action to somewhere that makes sense
-        self.state.FetchParameterHelp()
+        self.state.fetch_parameter_help()
 
-    def onActionConnections(self):
+    def on_action_connections(self):
         d = ConnectionsDialog(self.state)
         d.exec_()
 
-    def onActionScreen(self, screenNumber):
+    def on_action_screen(self, screenNumber):
         print("DEBUG onActionScreen " + str(screenNumber))
         self.activeScreen = screenNumber
-        self.DisplayScreen(self.activeScreen)
+        self.display_screen(self.activeScreen)
 
-    def onActionSavePerspective(self):
+    def on_action_save_perspective(self):
         # TODO onActionSavePerspective
         print("TODO onActionSavePerspective")
 
-    def onActionLoadPerspective(self):
+    def on_action_load_perspective(self):
         # TODO onActionLoadPerspective
         print("TODO onActionLoadPerspective")
 
-    def onActionAddWidget(self):
+    def on_action_add_widget(self):
         # TODO onActionAddWidget
         print("TODO onActionAddWidget")
         d = AddWidgetDialog(self.state)
         d.exec_()
         d.show()
 
+    def catch_network_changed(self):
+        for w in self.children():
+            if isinstance(w, GCSWidget):
+                w.catch_network_changed()
+
+
+    def catch_focused_mav_changed(self):
+        for w in self.children():
+            if isinstance(w, GCSWidget):
+                w.catch_focused_mav_changed()
+
+    def catch_focused_component_changed(self):
+        print("mainwindow.catch_focused_component_changed()")
 

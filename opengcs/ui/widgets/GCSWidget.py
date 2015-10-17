@@ -29,6 +29,9 @@ class GCSWidget (QtGui.QDockWidget):
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_menu)
 
+    def refresh(self):
+        return
+
     def create_menu(self):
 
         self.action_floating = QtGui.QAction('&Float Mode', self)
@@ -73,6 +76,13 @@ class GCSWidget (QtGui.QDockWidget):
             print("show")
             self.setTitleBarWidget(self.title)
             #self.setWindowFlags(None)
+
+    def catch_focused_mav_changed(self):
+        self.refresh()
+
+    def catch_network_changed(self):
+        "Widget Changed"
+        return
 
 
 

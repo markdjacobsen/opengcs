@@ -73,18 +73,18 @@ class ConnectionsDialog (QDialog):
         self.serialports = serial_ports()
 
         self.connectionTable.clearContents()
-        self.connectionTable.setRowCount(len(self.state.connections))
+        self.connectionTable.setRowCount(len(self.state.mav_network.connections))
 
         self.openports = []
 
         row = 0
-        for conn in self.state.connections:
+        for conn in self.state.mav_network.connections:
 
             self.openports.append(conn.port)
 
             item = QTableWidgetItem('0')
             status = QTableWidgetItem()
-            if conn.getPortDead() == False:
+            if conn.is_port_dead() == False:
                 status.setIcon(QIcon('art/16x16/dialog-clean.png'))
             else:
                 status.setIcon(QIcon('art/16x16/dialog-error-2.png'))
@@ -124,24 +124,22 @@ class ConnectionsDialog (QDialog):
                 msgBox.exec_()
                 return
         else:
+            # TODO: I temporarily moved the Connection constructor out of a 'try' block, because it is causing
+            # all errors in message processing to be captured by try. I need to figure out how to avoid this,
+            # and then move the connection step back into a try block.
+            conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
 
-            try:
-                conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
-            except:
-                msgBox = QMessageBox()
-                msgBox.setText("Unexpected error connecting to serial port")
-                msgBox.exec_()
-                return
+            #try:
+            #    conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
+            #except:
+            #    msgBox = QMessageBox()
+            #    msgBox.setText("Unexpected error connecting to serial port")
+            #    msgBox.exec_()
+            #    return
 
-        self.state.connections.append(conn)
+        self.state.mav_network.add_connection(conn)
 
         self.UpdatePorts()
-
-        # DEBUG
-        print(self.state.connections)
-        print(self.state.mavs)
-        print(conn.mavs)
-
 
     def on_button_disconnect(self, row):
         print "Disconnect " + str(row)

@@ -1,3 +1,5 @@
+# TODO support for mavlink components is not really here yet
+
 from pymavlink import mavutil
 import threading
 import xmltodict
@@ -14,22 +16,23 @@ class GCSState():
     and mavlink components, fleet management data, and configuration  data
     """
     def __init__(self):
-        self.connections = []
-        self.mavs = []
-        self.components = []
+        self.mav_network = MAVNetwork(self)
         self.config = GCSConfig()
-        self.focusedMav = None
+
+        self.focused_mav = None
+        self.focused_component = None
 
         # These are signals that other code can subscribe to
         self.on_focused_mav_changed = []
-        self.on_mav_registered = []
-        self.on_mav_unregistered = []
-        self.on_connection_registered = []
-        self.on_connection_unregistered = []
+        self.on_focused_component_changed = []
+
+        # Debug object, which sends debug messages whenever signals are fired.
+        # Comment out to reduce verbosity.
+        debugger = StateDebugger(self)
 
         return
 
-    def FetchParameterHelp(self):
+    def fetch_parameter_help(self):
         files = []
         for vehicle in ['APMrover2', 'ArduCopter', 'ArduPlane']:
             url = 'http://autotest.diydrones.com/Parameters/%s/apm.pdef.xml' % vehicle
@@ -45,59 +48,133 @@ class GCSState():
         except Exception as e:
             print(e)
 
-    def RegisterConnection(self, connection):
+
+    def set_focused_mav(self, mav):
+        if self.focused_mav != mav:
+            self.focused_mav = mav
+            for signal in self.on_focused_mav_changed:
+                signal()
+
+class StateDebugger:
+    """
+    This class is for debugging signals/slots related to the GCSState and MAVNetwork objects. It is
+    essentially a dummy that subscribes to a variety of signals and prints debug messages.
+    """
+    def __init__(self, state):
+        self.state = state
+        self.state.on_focused_mav_changed.append(self.catch_focused_mav_changed)
+        self.state.on_focused_component_changed.append(self.catch_focused_component_changed)
+        self.state.mav_network.on_mav_added.append(self.catch_mav_added)
+        self.state.mav_network.on_mav_removed.append(self.catch_mav_removed)
+        self.state.mav_network.on_connection_added.append(self.catch_connection_added)
+        self.state.mav_network.on_connection_removed.append(self.catch_connection_removed)
+        self.state.mav_network.on_component_removed.append(self.catch_component_removed)
+        self.state.mav_network.on_component_added.append(self.catch_component_added)
+        self.state.mav_network.on_network_changed.append(self.catch_network_changed)
+
+    def catch_focused_mav_changed(self):
+        print("Signal: GCSState.on_focused_mav_changed")
+
+    def catch_focused_component_changed(self):
+        print("Signal: GCSState.on_focused_component_changed")
+
+    def catch_mav_added(self):
+        print("Signal: MAVNetwork.on_mav_added")
+
+    def catch_mav_removed(self):
+        print("Signal: MAVNetwork.on_mav_removed")
+
+    def catch_connection_added(self):
+        print("Signal: MAVNetwork.on_connection_added")
+
+    def catch_connection_removed(self):
+        print("Signal: MAVNetwork.on_connection_removed")
+
+    def catch_component_added(self):
+        print("Signal: MAVNetwork.on_component_added")
+
+    def catch_component_removed(self):
+        print("Signal: MAVNetwork.on_component_removed")
+
+    def catch_network_changed(self):
+        print("Signal: MAVNetwork.catch_nework_changed")
+
+class MAVNetwork:
+    def __init__(self, state):
+        self.state = state
+        self.connections = []
+        self.mavs = []
+        self.components = []
+
+        # These are signals that other code can subscribe to
+        self.on_mav_added = []
+        self.on_mav_removed = []
+        self.on_connection_added = []
+        self.on_connection_removed = []
+        self.on_component_added = []
+        self.on_component_removed = []
+        self.on_network_changed = []
+
+    def add_connection(self, connection):
         """
         Register a new connection with the GCS state
         """
         if connection not in self.connections:
             self.connections.append(connection)
-            for signal in self.on_connection_registered:
+            for signal in self.on_connection_added:
                 signal()
 
-            for mav in connection.mavs:
-                if mav not in self.mavs:
-                    self.mavs.append(mav)
-                    for signal in self.on_mav_registered:
+            for mavkey in connection.mavs:
+                if mavkey not in self.mavs:
+                    self.mavs[mavkey] = connection.mavs[mavkey]
+                    for signal in self.on_mav_added:
                         signal()
 
+            for signal in self.on_network_changed:
+                signal()
 
-    def RegisterMAV(self, mav):
+    def add_mav(self, mav):
         """
         Register a new mav with the GCS state
         """
         if mav not in self.mavs:
             self.mavs.append(mav)
-            for signal in self.on_mav_registered:
+            for signal in self.on_mav_added:
+                signal()
+            for signal in self.on_network_changed:
                 signal()
 
-    def UnregisterConnection(self, connection):
+        # If this is the first mav on the network, automatically give it focus
+        if len(self.mavs) == 1:
+            self.state.set_focused_mav(mav)
+
+    def remove_connection(self, connection):
         """
         Unregister a connection and all associated mavs from the GCS state
         """
         if connection in self.connections:
             # Remove all mavs associated with this connection
-            for mav in connection.mavs:
+            for mavkey in connection.mavs:
+                mav = connection.mavs[mavkey]
                 if mav in self.mavs:
                     self.mavs.remove(mav)
-                    for signal in self.on_mav_unregistered:
+                    for signal in self.on_mav_removed:
                         signal()
             self.connections.remove(connection)
-            for signal in self.on_connection_unregistered:
+            for signal in self.on_connection_removed:
+                signal()
+            for signal in self.on_network_changed:
                 signal()
 
-    def UnregisterMAV(self, mav):
+    def remove_mav(self, mav):
         """
         Unregister a mav from the GCS state
         """
         if mav in self.mavs:
             self.mavs.remove(mav)
-            for signal in self.on_mav_unregistered:
+            for signal in self.on_mav_removed:
                 signal()
-
-    def SetFocusedMAV(self, mav):
-        if self.focusedMav != mav:
-            self.focusedMav = mav
-            for signal in self.on_focused_mav_changed:
+            for signal in self.on_network_changed:
                 signal()
 
 class Connection:
@@ -108,34 +185,64 @@ class Connection:
         self.state = state
         self.port = port
         self.number = number
-        self.mavs = []
+        self.mavs = {}
 
         # TODO Support UDP/TCP connections
         if port == "UDP" or port == "TCP":
             return
 
-        # TODO Separate mav and connection layers
-        # The vision is to ulimately split connections and MAVs, so one connection
-        # can support multiple MAVs. For now, we cheat and just build a single MAV
-        # per connection, with the pymavlink.mavlink_connection() object stored in
-        # the MAV object.
-        newmav = MAV()
-        newmav.connect(port, number)
-        self.mavs.append(newmav)
-        self.state.RegisterMAV(newmav)
-        if len(self.mavs) == 1:
-            self.state.SetFocusedMAV(newmav)
+        print("Connecting to " + port)
+        self.master = mavutil.mavlink_connection(port, baud=number)
 
+        self.thread = threading.Thread(target=self.process_messages)
+        self.thread.setDaemon(True)
+        self.thread.start()
 
+        self.state.mav_network.add_connection(self)
 
-    def getPortDead(self):
+    def log_message(self,caller,msg):
+        if msg.get_type() != 'BAD_DATA':
+            print(str(msg))
+        return
+
+    def process_messages(self):
+        """
+        This runs continuously. The mavutil.recv_match() function will call mavutil.post_message()
+        any time a new message is received. It will then forward messages to the process_messages()
+        method of the MAV that has a matching system ID.
+        """
+        while True:
+            m = self.master.recv_match(blocking=True)
+            if not m:
+                return
+            if m.get_type() == "BAD_DATA":
+                if mavutil.all_printable(m.data):
+                    sys.stdout.write(m.data)
+                    sys.stdout.flush()
+
+            system_id = m.get_header().srcSystem
+
+            # If the source system is 0, every MAV processes it
+            # TODO I'm not sure if MAVs ever have a source system of 0
+            if system_id == 0:
+                for mavkey in self.mavs:
+                    self.mavs[mavkey].process_messages(m)
+            # If the source MAV has already been registered, forward the message to that MAV object
+            elif system_id in self.mavs:
+                self.mavs[system_id].process_messages(m)
+            # Otherwise, it's a new MAV and we need to add it
+            else:
+                newmav = MAV(self, system_id)
+                self.mavs[system_id] = newmav
+                self.state.mav_network.add_mav(newmav)
+                print(self.state.mav_network.mavs)
+                newmav.process_messages(m)
+
+    def is_port_dead(self):
         """
         Returns whether the connection is alive or dead
         """
-        if len(self.mavs) == 0:
-            return True
-        else:
-            return self.mavs[0].master.portdead
+        return self.master.portdead
 
 class MAV:
     """
@@ -150,9 +257,10 @@ class MAV:
     separate the two. Most of that work will probably be done inside the MAV class and
     Connection class.
     """
-    def __init__(self):
-        self.systemid = 0
-        self.master = None
+    def __init__(self, conn, system_id):
+        self.system_id = system_id
+        self.conn = conn
+        self.master = conn.master
         self.name = "MAV"
 
         # Properties related to parameters
@@ -160,6 +268,7 @@ class MAV:
         self.mav_param = {}         # Actual parameter values
         self.mav_param_count = 0    # Total number of parameters aboard flight controller
         self.fetch_one = 0          # ???
+        self.param_fetched = False
 
         # The class exposes a number of events that other code can subscribe to
         self.on_heartbeat = []
@@ -168,100 +277,62 @@ class MAV:
         self.on_params_initialized = []
         self.on_params_changed = []
 
-        # etc... these are just placeholders for now to illustrate how this might work
 
-    def connect(self, port, number):
-        print("Connecting to " + port)
-        self.master = mavutil.mavlink_connection(port, baud=number)
+    def process_messages(self, m):
 
-        self.thread = threading.Thread(target=self.process_messages)
-        self.thread.setDaemon(True)
-        self.thread.start()
+        mtype = m.get_type()
 
-        self.master.message_hooks.append(self.check_heartbeat)
-        #self.master.message_hooks.append(self.log_message)
+        if mtype == "HEARTBEAT":
+            if self.param_fetched == False:
+                self.param_fetched = True
+                self.fetch_all_parameters()
 
 
-    def log_message(self,caller,msg):
-        if msg.get_type() != 'BAD_DATA':
-            print(str(msg))
-        return
+        # DEBUG: temporary code block for debugging
+        if mtype == "VFR_HUD":
+            self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.master.messages)
+            self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.master.messages)
+            self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.master.messages)
+            #print(str(m.get_header().srcSystem) + ": Altitude: " + str(self.altitude))
 
-    def process_messages(self):
-        """
-        This runs continuously. The mavutil.recv_match() function will call mavutil.post_message()
-        any time a new message is received, and will notify all functions in the master.message_hooks list.
-        """
-        while True:
-            m = self.master.recv_match(blocking=True)
-            if not m:
-                return
-            if m.get_type() == "BAD_DATA":
-                if mavutil.all_printable(m.data):
-                    sys.stdout.write(m.data)
-                    sys.stdout.flush()
+        if mtype == 'PARAM_VALUE':
+            param_id = "%.16s" % m.param_id
+            # Note: the xml specifies param_index is a uint16, so -1 in that field will show as 65535
+            # We accept both -1 and 65535 as 'unknown index' to future proof us against someday having that
+            # xml fixed.
+            if m.param_index != -1 and m.param_index != 65535 and m.param_index not in self.mav_param_set:
+                added_new_parameter = True
+                self.mav_param_set.add(m.param_index)
+            else:
+                added_new_parameter = False
+            if m.param_count != -1:
+                 self.mav_param_count = m.param_count
+            self.mav_param[str(param_id)] = m.param_value
+            if self.fetch_one > 0:
+                self.fetch_one -= 1
+                print("%s = %f" % (param_id, m.param_value))
+            if added_new_parameter and len(self.mav_param_set) == m.param_count:
+                print("Received %u parameters" % m.param_count)
 
-            mtype = m.get_type()
+               #if self.logdir != None:
+                #    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
 
-            # DEBUG: temporary code block for debugging
-            if mtype == "VFR_HUD":
-                self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.master.messages)
-                self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.master.messages)
-                self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.master.messages)
-                #print("Altitude: " + str(self.altitude))
+                for func in self.on_params_initialized:
+                    func()
 
-            if mtype == 'PARAM_VALUE':
-                param_id = "%.16s" % m.param_id
-                # Note: the xml specifies param_index is a uint16, so -1 in that field will show as 65535
-                # We accept both -1 and 65535 as 'unknown index' to future proof us against someday having that
-                # xml fixed.
-                if m.param_index != -1 and m.param_index != 65535 and m.param_index not in self.mav_param_set:
-                    added_new_parameter = True
-                    self.mav_param_set.add(m.param_index)
-                else:
-                    added_new_parameter = False
-                if m.param_count != -1:
-                    self.mav_param_count = m.param_count
-                self.mav_param[str(param_id)] = m.param_value
-                if self.fetch_one > 0:
-                    self.fetch_one -= 1
-                    print("%s = %f" % (param_id, m.param_value))
-                if added_new_parameter and len(self.mav_param_set) == m.param_count:
-                    print("Received %u parameters" % m.param_count)
+    def fetch_all_parameters(self):
+        print("Fetching all parameters for system ") + str(self.system_id)
+        self.master.target_system = self.system_id
+        self.master.param_fetch_all()
+        self.mav_param_set = set()
 
-                    #if self.logdir != None:
-                    #    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
-
-                    for func in self.on_params_initialized:
-                        func()
-
-    def check_heartbeat(self,caller,msg):
-        """
-        Listens for a heartbeat message
-
-        Once this function is subscribed to the dispatcher, it listens to every
-        incoming MAVLINK message and watches for a 'HEARTBEAT' message. Once
-        that message is received, the function updates the GUI and then
-        unsubscribes itself.
-        """
-
-        if msg.get_type() ==  'HEARTBEAT':
-            print("Heartbeat received from APM (system %u component %u)\n" % (self.master.target_system, self.master.target_system))
-            self.system_id = self.master.target_system
-            self.master.message_hooks.remove(self.check_heartbeat)
-            self.FetchAllParameters()
-
-    def SetParameter(self, param, value):
+    def set_parameter(self, param, value):
         if value.startswith('0x'):
             value = int(value, base=16)
         if not param.upper() in self.mav_param:
             print("Unable to find parameter '%s'" % param)
             return
         self.mav_param.mavset(self.master, param.upper(), value, retries=3)
-
-    def FetchAllParameters(self):
-        self.master.param_fetch_all()
-        self.mav_param_set = set()
 
 # This is included for reference, from mavproxy module_param, although it is not currently used
 class ParamState:

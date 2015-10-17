@@ -21,6 +21,7 @@ class GCSWidgetMAVNetwork (GCSWidget):
     widgetName = "MAV Network"
 
     def __init__(self, state, parent):
+
         super(GCSWidgetMAVNetwork, self).__init__(state, parent)
 
         self.setWindowTitle("MAV Network")
@@ -49,30 +50,32 @@ class GCSWidgetMAVNetwork (GCSWidget):
         self.toolbar.addAction(self.action_tree)
         vbox.setMenuBar(self.toolbar)
 
-        self.refresh_data()
+        self.refresh()
 
-        self.state.on_mav_registered.append(self.refresh_data)
-        self.state.on_connection_registered.append(self.refresh_data)
-        self.state.on_mav_unregistered.append(self.refresh_data)
-        self.state.on_connection_unregistered.append(self.refresh_data)
+        #self.state.on_mav_registered.append(self.refresh_data)
+        #self.state.on_connection_registered.append(self.refresh_data)
+        #self.state.on_mav_unregistered.append(self.refresh_data)
+        #self.state.on_connection_unregistered.append(self.refresh_data)
 
-    def refresh_data(self):
+    def refresh(self):
+
         self.tree.clear()
-        for connection in self.state.connections:
+        for connection in self.state.mav_network.connections:
             print(connection.port)
             conn_item = QTreeWidgetItem(self.tree, [connection.port])
-            #conn_item = QTreeWidgetItem(self.tree, ['Connection'])
-            #conn_item = QTreeWidgetItem(self.tree)
-            #conn_item.setText(0,'Connection')
             conn_item.setIcon(0,QIcon('art/16x16/user-available.png'))
-            #conn_item.setUserData()
             self.tree.addTopLevelItem(conn_item)
-            for mav in connection.mavs:
-                print(mav)
+
+            for mavkey in connection.mavs:
+                mav = connection.mavs[mavkey]
                 mav_item = QTreeWidgetItem(conn_item, [mav.name])
-                #mav_item = QTreeWidgetItem(conn_item, ['MAV'])
                 mav_item.setIcon(0,QIcon('art/16x16/arrow-right-2.png'))
-                #conn_item.addChild(mav_item)
+
+    def catch_network_changed(self):
+        print("MAVNetwork changed")
+        self.refresh()
+        return
 
     def on_button_tree(self):
-        self.refresh_data()
+
+        self.refresh()

@@ -5,13 +5,23 @@
         <icon>art/48x48/video-display-3.png</icon>
         <tooltip>Switch to screen 1</tooltip>
         <widget>
-            <type>GCSWidgetHUD</type>
-            <name>Heads Up Display</name>
-            <location>left</location>
-        </widget>
-        <widget>
             <type>GCSWidgetMAVNetwork</type>
             <name>MAV Network</name>
+            <location>left</location>
+        </widget>
+         <widget>
+            <type>GCSWidgetMap</type>
+            <name>Map</name>
+            <location>center</location>
+        </widget>
+    </screen>
+    <screen>
+        <name>Screen2</name>
+        <icon>art/48x48/video-display-3.png</icon>
+        <tooltip>Switch to screen 2</tooltip>
+        <widget>
+            <type>GCSWidgetHUD</type>
+            <name>Heads Up Display</name>
             <location>left</location>
         </widget>
         <widget>
@@ -22,36 +32,6 @@
         <widget>
             <type>GCSWidgetParameterList</type>
             <name>My Parameters</name>
-            <location>right</location>
-        </widget>
-        <widget>
-            <type>GCSWidget</type>
-            <name>Bottom widget</name>
-            <location>bottom</location>
-        </widget>
-        <widget>
-            <type>GCSWidget</type>
-            <name>Top widget</name>
-            <location>top</location>
-        </widget>
-    </screen>
-    <screen>
-        <name>Screen2</name>
-        <icon>art/48x48/video-display-3.png</icon>
-        <tooltip>Switch to screen 2</tooltip>
-        <widget>
-            <type>GCSWidget</type>
-            <name>Hello World #1</name>
-            <location>center</location>
-        </widget>
-        <widget>
-            <type>GCSWidget</type>
-            <name>Hello World #2</name>
-            <location>left</location>
-        </widget>
-        <widget>
-            <type>GCSWidget</type>
-            <name>Hello World #3</name>
             <location>right</location>
         </widget>
     </screen>
