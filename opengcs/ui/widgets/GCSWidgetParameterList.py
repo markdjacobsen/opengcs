@@ -16,13 +16,13 @@ class GCSWidgetParameterList (GCSWidget):
 
         self.setWindowTitle("Parameter List")
         self.setMinimumSize(150, 150)
-        self.state.on_focused_mav_changed.append(self.mav_changed)
+        #self.state.on_focused_mav_changed.append(self.mav_changed)
 
         self.all_params = []
         self.filtered_params = []
 
         self.init_ui()
-        #self.Refresh()
+        self.refresh()
 
     def init_ui(self):
 
@@ -56,13 +56,15 @@ class GCSWidgetParameterList (GCSWidget):
         self.apply_filter()
 
     def refresh(self):
-        print("refresh")
         self.table_params.clearContents()
 
         if self.target == MAVTarget.FOCUSED:
             mav = self.state.focused_mav
         else:
             # TODO handle specific mav assignments
+            return
+
+        if mav is None:
             return
 
         self.all_params = mav.mav_param
@@ -88,10 +90,10 @@ class GCSWidgetParameterList (GCSWidget):
                 self.table_params.setRowHidden(i,True)
 
 
-    def mav_changed(self):
-        mav = self.state.focusedMav
-        mav.on_params_initialized.append(self.refresh)
-        self.refresh()
+    # def mav_changed(self):
+    #     mav = self.state.focused_mav
+    #     mav.on_params_initialized.append(self.refresh)
+    #     self.refresh()
 
 
 

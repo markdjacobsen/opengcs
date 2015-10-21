@@ -1,5 +1,3 @@
-# TODO: have a verbose option for showing mavlink feed
-# TODO: bug - clicking "OK" causes window to reopen a second time before closing
 # TODO: make disconnect button work
 # TODO: close all ports upon closing program
 # TODO: update port status icon / alert to dead ports
@@ -109,7 +107,6 @@ class ConnectionsDialog (QDialog):
 
     def on_button_ok(self):
         self.close()
-        print("closing")
 
     def on_button_connect(self):
         conntype = self.combo_new_connection.currentText()
@@ -142,10 +139,18 @@ class ConnectionsDialog (QDialog):
         self.update_ports()
 
     def on_button_disconnect(self, row):
-        print "Disconnect " + str(row)
+        # TODO implmenet disconnect
+        port = self.table_connections.item(row, 1).text()
+        conn = self.state.mav_network.connections[row]
+        print "Disconnect " + conn.port
+        conn.close()
+        # TODO error between these two lines... the serial connection is not truly closed before
+        # remove_connection is called. That means more mavlink packets come in after the
+        # close() call, and a new mav gets detected again
+        self.state.mav_network.remove_connection(conn)
+        self.update_ports()
 
     def on_connection_combo_changed(self):
-        print("combo changed")
         conntype = self.combo_new_connection.currentText()
         if conntype == "TCP" or conntype == "UDP":
             self.combo_new_port.setVisible(False)

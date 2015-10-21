@@ -16,6 +16,8 @@ class MainWindow(QMainWindow):
         self.state = state
         self.initUI()
 
+        # The MainWindow listens to these events from the GCS state, so it can update
+        # widgets as appropriate
         self.state.on_focused_mav_changed.append(self.catch_focused_mav_changed)
         self.state.on_focused_component_changed.append(self.catch_focused_component_changed)
         self.state.mav_network.on_network_changed.append(self.catch_network_changed)
@@ -32,6 +34,8 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
         self.create_statusbar()
         self.create_menu()
+        if self.state.debug:
+            self.create_debug()
 
         self.active_screen = 0
         self.display_screen(self.active_screen)
@@ -100,9 +104,11 @@ class MainWindow(QMainWindow):
             action = QAction(QIcon(screen['icon']), screen['name'], self)
             action.setToolTip(screen['tooltip'])
             action.triggered.connect(functools.partial(self.on_action_screen,screen_number))
+            action.setCheckable(True)
             self.actions_screens.append(action)
             screen_number = screen_number + 1
             # TODO add screen selection keyboard shortcuts
+        self.actions_screens[0].setChecked(True)
 
     def create_toolbar(self):
         """
@@ -170,7 +176,7 @@ class MainWindow(QMainWindow):
 
 
     def on_action_settings(self):
-        print("Action activated")
+        print("TODO on_action_settings")
         # TODO move FetchParameterHelp action to somewhere that makes sense
         self.state.fetch_parameter_help()
 
@@ -179,20 +185,25 @@ class MainWindow(QMainWindow):
         d.exec_()
 
     def on_action_screen(self, screenNumber):
-        print("DEBUG onActionScreen " + str(screenNumber))
         self.active_screen = screenNumber
         self.display_screen(self.active_screen)
+        for i in range(0,len(self.actions_screens)):
+            action_screen = self.actions_screens[i]
+            if i == screenNumber:
+                action_screen.setChecked(True)
+            else:
+                action_screen.setChecked(False)
 
     def on_action_save_perspective(self):
-        # TODO onActionSavePerspective
+        # TODO on_action_save_perspective
         print("TODO onActionSavePerspective")
 
     def on_action_load_perspective(self):
-        # TODO onActionLoadPerspective
+        # TODO on_action_load_perspective
         print("TODO onActionLoadPerspective")
 
     def on_action_add_widget(self):
-        # TODO onActionAddWidget
+        # TODO on_action_add_widget
         print("TODO onActionAddWidget")
         d = AddWidgetDialog(self.state)
         d.exec_()
@@ -201,12 +212,19 @@ class MainWindow(QMainWindow):
     def catch_network_changed(self):
 
         # Update combo boxes
-        # TODO support sorting of focused MAV combo box
+        # TODO support sorting of focused MAV combo box. Sort keys?
+        print("mainwindow.catch_network_changed()")
+        self.combo_focused_mav.blockSignals(True)
         self.combo_focused_mav.clear()
-        for mav in self.state.mav_network.mavs:
-            self.combo_focused_mav.addItem(str(mav.system_id))
+        #print("MAV count: " + str(len(self.state.mav_network.mavs)))
+        for mavkey in self.state.mav_network.mavs:
+            print("mav found")
+            mav = self.state.mav_network.mavs[mavkey]
+            v = QtCore.QVariant(mav)
+            self.combo_focused_mav.addItem(mav.get_name(), v)
             if mav == self.state.focused_mav:
                 self.combo_focused_mav.setCurrentIndex(self.combo_focused_mav.count()-1)
+        self.combo_focused_mav.blockSignals(False)
 
         # Notify all widgets
         for w in self.children():
@@ -214,6 +232,7 @@ class MainWindow(QMainWindow):
                 w.catch_network_changed()
 
     def catch_focused_mav_changed(self):
+
         # Notify all widgets
         for w in self.children():
             if isinstance(w, GCSWidget):
@@ -223,10 +242,39 @@ class MainWindow(QMainWindow):
         # TODO implement catch_focused_component_changed
         print("mainwindow.catch_focused_component_changed()")
 
-
     def on_combo_focused_component(self):
-        # TOOD implement on_combo_focused_component
+        # TODO implement on_combo_focused_component
         return
 
     def on_combo_focused_mav(self):
-        print("Combo box changed")
+
+        print("main.window_oncombo_focused_mav()")
+        idx = self.combo_focused_mav.currentIndex()
+        mav = self.combo_focused_mav.itemData(idx).toPyObject()
+        self.state.set_focused_mav(mav)
+
+
+    def create_debug(self):
+        '''
+        Create a debug menu. Only called if the 'debug' setting is TRUE
+        '''
+        self.menu_debug = self.menubar.addMenu('&Debug')
+
+        self.action_debug_network = QAction('&Show MAV Network',self)
+        self.action_debug_network.triggered.connect(self.on_debug_network)
+        self.menu_debug.addAction(self.action_debug_network)
+
+    def on_debug_network(self):
+
+        print("MAV Network")
+        print("-----------")
+        for conn in self.state.mav_network.connections:
+            print conn.get_name()
+
+            for mavkey in conn.mavs:
+                mav = conn.mavs[mavkey]
+                print "  " + mav.get_name()
+
+                # TODO when implementing components
+                #for component in mav:
+                #    print "  " + component.get_name()

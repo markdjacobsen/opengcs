@@ -7,6 +7,7 @@ from PyQt4 import QtCore, QtGui
 class MAVTarget:
     ALL = -1
     FOCUSED = -2
+    GROUP = -3
 
 
 class GCSWidget (QtGui.QDockWidget):
@@ -28,9 +29,24 @@ class GCSWidget (QtGui.QDockWidget):
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_menu)
+        self.set_colors()
+
+    def set_colors(self):
+
+        if self.target == MAVTarget.GROUP:
+            p = self.palette()
+            p.setColor(self.backgroundRole(), QtGui.QColor(255,0,0))
+            self.setPalette(p)
+            self.setAutoFillBackground(True)
+        else:
+            p = self.palette()
+            p.setColor(self.backgroundRole(), QtGui.QWidget().palette().color(QtGui.QPalette.Window))
+            self.setPalette(p)
+            self.setAutoFillBackground(True)
 
     def refresh(self):
-        return
+        self.set_colors()
+
 
     def create_menu(self):
 
@@ -104,14 +120,14 @@ class GCSWidget (QtGui.QDockWidget):
 
 
 
-    def mousePressEvent(self, QMouseEvent):
-        # DEBUG this exists to assist with layout management
-        print("Features" + str(self.features()))
-        print("Height: " + str(self.height()), "Width: " + str(self.width()))
-        print("Is floating: " + str(self.isFloating()))
-        print("Pos: " + str(self.pos()))
-        print("Size: " + str(self.size()))
-        print("X: " + str(self.x))
-        print("Y: " + str(self.y))
+    # def mousePressEvent(self, QMouseEvent):
+    #     # DEBUG this exists to assist with layout management
+    #     print("Features" + str(self.features()))
+    #     print("Height: " + str(self.height()), "Width: " + str(self.width()))
+    #     print("Is floating: " + str(self.isFloating()))
+    #     print("Pos: " + str(self.pos()))
+    #     print("Size: " + str(self.size()))
+    #     print("X: " + str(self.x))
+    #     print("Y: " + str(self.y))
 
 

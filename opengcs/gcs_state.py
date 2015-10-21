@@ -1,4 +1,5 @@
 # TODO support for mavlink components is not really here yet
+# TODO catch SerialException when reading serial port
 
 from pymavlink import mavutil
 import threading
@@ -19,6 +20,7 @@ class GCSState():
     def __init__(self):
         self.mav_network = MAVNetwork(self)
         self.config = GCSConfig()
+        self.debug = self.config.settings['debug']
 
         self.focused_mav = None
         self.focused_component = None
@@ -29,7 +31,8 @@ class GCSState():
 
         # Debug object, which sends debug messages whenever signals are fired.
         # Comment out to reduce verbosity.
-        debugger = StateDebugger(self)
+        if self.debug:
+            debugger = StateDebugger(self)
 
         return
 
@@ -74,37 +77,41 @@ class StateDebugger:
         self.state.mav_network.on_network_changed.append(self.catch_network_changed)
 
     def catch_focused_mav_changed(self):
-        print("Signal: GCSState.on_focused_mav_changed")
+        print("Signal: GCSState.on_focused_mav_changed, caught by gcs_state.StateDebugger")
+        if self.state.focused_mav is MAV:
+            print("New focus: " + self.state.focused_mav.get_name())
+        else:
+            print("No MAV focused")
 
     def catch_focused_component_changed(self):
-        print("Signal: GCSState.on_focused_component_changed")
+        print("Signal: GCSState.on_focused_component_changed, caught by gcs_state.StateDebugger")
 
     def catch_mav_added(self):
-        print("Signal: MAVNetwork.on_mav_added")
+        print("Signal: MAVNetwork.on_mav_added, caught by gcs_state.StateDebugger")
 
     def catch_mav_removed(self):
-        print("Signal: MAVNetwork.on_mav_removed")
+        print("Signal: MAVNetwork.on_mav_removed, caught by gcs_state.StateDebugger")
 
     def catch_connection_added(self):
-        print("Signal: MAVNetwork.on_connection_added")
+        print("Signal: MAVNetwork.on_connection_added, caught by gcs_state.StateDebugger")
 
     def catch_connection_removed(self):
-        print("Signal: MAVNetwork.on_connection_removed")
+        print("Signal: MAVNetwork.on_connection_removed, caught by gcs_state.StateDebugger")
 
     def catch_component_added(self):
-        print("Signal: MAVNetwork.on_component_added")
+        print("Signal: MAVNetwork.on_component_added, caught by gcs_state.StateDebugger")
 
     def catch_component_removed(self):
-        print("Signal: MAVNetwork.on_component_removed")
+        print("Signal: MAVNetwork.on_component_removed, caught by gcs_state.StateDebugger")
 
     def catch_network_changed(self):
-        print("Signal: MAVNetwork.catch_nework_changed")
+        print("Signal: MAVNetwork.catch_nework_changed, caught by gcs_state.StateDebugger")
 
 class MAVNetwork:
     def __init__(self, state):
         self.state = state
         self.connections = []
-        self.mavs = []
+        self.mavs = {}
         self.components = []
 
         # These are signals that other code can subscribe to
@@ -125,24 +132,14 @@ class MAVNetwork:
             for signal in self.on_connection_added:
                 signal()
 
-            for mavkey in connection.mavs:
-                if mavkey not in self.mavs:
-                    self.mavs[mavkey] = connection.mavs[mavkey]
-                    for signal in self.on_mav_added:
-                        signal()
-
-            # TODO Cannot call GUI callback functions from within a mavlink thread
-            for signal in self.on_network_changed:
-                signal()
-
     def add_mav(self, mav):
         """
         Register a new mav with the GCS state
         """
+        print("Add mav: " + mav.name)
         if mav not in self.mavs:
-            self.mavs.append(mav)
+            self.mavs[mav.system_id] = mav
 
-            # TODO Cannot call GUI callback functions from within a mavlink thread
             for signal in self.on_mav_added:
                 signal()
             for signal in self.on_network_changed:
@@ -152,20 +149,20 @@ class MAVNetwork:
         if len(self.mavs) == 1:
             self.state.set_focused_mav(mav)
 
-    def remove_connection(self, connection):
+    def remove_connection(self, conn):
         """
         Unregister a connection and all associated mavs from the GCS state
         """
-        # TODO Cannot call GUI callback functions from within a mavlink thread
-        if connection in self.connections:
+        if conn in self.connections:
             # Remove all mavs associated with this connection
-            for mavkey in connection.mavs:
-                mav = connection.mavs[mavkey]
-                if mav in self.mavs:
-                    self.mavs.remove(mav)
-                    for signal in self.on_mav_removed:
-                        signal()
-            self.connections.remove(connection)
+            for mav in self.get_mavs_on_connection(conn):
+                self.remove_mav(mav)
+                print("removing mav")
+
+                if self.state.focused_mav == mav:
+                    self.state.set_focused_mav(None)
+
+            self.connections.remove(conn)
             for signal in self.on_connection_removed:
                 signal()
             for signal in self.on_network_changed:
@@ -175,13 +172,52 @@ class MAVNetwork:
         """
         Unregister a mav from the GCS state
         """
-        # TODO Cannot call GUI callback functions from within a mavlink thread
-        if mav in self.mavs:
-            self.mavs.remove(mav)
-            for signal in self.on_mav_removed:
-                signal()
-            for signal in self.on_network_changed:
-                signal()
+        deletekey = None
+
+        for mavkey in self.mavs:
+            if self.mavs[mavkey] == mav:
+                deletekey = mavkey
+
+        if deletekey == None:
+            return
+
+        del self.mavs[mavkey]
+        for signal in self.on_mav_removed:
+            signal()
+        for signal in self.on_network_changed:
+            signal()
+
+    def get_mavs_on_connection(self, conn):
+        mavs = []
+        for mavkey in self.mavs:
+            if self.mavs[mavkey].conn == conn:
+                mavs.append(self.mavs[mavkey])
+        return mavs
+
+    def route_messages(self, m, conn):
+        """
+        This method receives mavlink traffic from ALL open connections. It forwards
+        messages to the appropriate mav objects, and adds new mavs as they are
+        detected.
+        """
+
+        system_id = m.get_header().srcSystem
+
+        # If the source system is 0, every MAV processes it
+        # TODO I'm not sure if MAVs ever have a source system of 0
+        if system_id == 0:
+            for mavkey in self.mavs:
+                self.mavs[mavkey].process_messages(m)
+
+        # If the source MAV has already been registered, forward the message to that MAV object
+        elif system_id in self.mavs:
+            self.mavs[system_id].process_messages(m)
+
+        # Otherwise, it's a new MAV and we need to add it
+        else:
+            newmav = MAV(conn, system_id)
+            self.add_mav(newmav)
+            newmav.process_messages(m)
 
 class MavlinkThread(QThread):
     """
@@ -192,13 +228,16 @@ class MavlinkThread(QThread):
     message is received. Those messages are processed by the Connection
     object.
     """
-    def __init__(self, master):
+    def __init__(self, conn):
         super(MavlinkThread, self).__init__()
-        self.master = master
+        self.conn = conn
+        self.master = conn.master
+        self.command_exit = False
 
     def run(self):
 
-        while True:
+        while self.command_exit == False:
+            #print(self.command_exit)
             m = self.master.recv_match(blocking=True)
             if not m:
                 return
@@ -206,8 +245,11 @@ class MavlinkThread(QThread):
                 if mavutil.all_printable(m.data):
                     sys.stdout.write(m.data)
                     sys.stdout.flush()
-            self.emit(SIGNAL("messageReceived"), m)
+            self.emit(SIGNAL("messageReceived"), m, self.conn)
+        print "Returning from thread loop"
 
+    def request_exit(self):
+        self.command_exit = True
 
 class Connection:
     """
@@ -223,47 +265,29 @@ class Connection:
         if port == "UDP" or port == "TCP":
             return
 
-        print("Connecting to " + port)
         self.master = mavutil.mavlink_connection(port, baud=number)
 
         # Run port monitoring on a secondary thread. Any time a mavlink message is received,
-        # it signals for the process_messages functionb below to handle the message on the
-        # primary thread.
-        thread = MavlinkThread(self.master)
-        thread.connect(thread, SIGNAL("messageReceived"), self.process_messages)
-        thread.start()
+        # it signals for the mav_network.process_messages function to handle the message on the
+        # primary thread. That function routes the message to the appropriate vehicles.
+        self.thread = MavlinkThread(self)
+        self.thread.connect(self.thread, SIGNAL("messageReceived"), self.state.mav_network.route_messages)
+        self.thread.start()
 
         self.state.mav_network.add_connection(self)
 
-    def log_message(self,caller,msg):
-        if msg.get_type() != 'BAD_DATA':
-            print(str(msg))
-        return
+    def close(self):
+        #self.thread.quit()
+        self.thread.disconnect()
+        self.thread.request_exit()
+        time.sleep(0.5)
+        self.master.close()
 
-    def process_messages(self, m):
+    def get_name(self):
         """
-        This runs continuously. The mavutil.recv_match() function will call mavutil.post_message()
-        any time a new message is received. It will then forward messages to the process_messages()
-        method of the MAV that has a matching system ID.
+        Return the name of the port.
         """
-
-        system_id = m.get_header().srcSystem
-
-        # If the source system is 0, every MAV processes it
-        # TODO I'm not sure if MAVs ever have a source system of 0
-        if system_id == 0:
-            for mavkey in self.mavs:
-                self.mavs[mavkey].process_messages(m)
-        # If the source MAV has already been registered, forward the message to that MAV object
-        elif system_id in self.mavs:
-            self.mavs[system_id].process_messages(m)
-        # Otherwise, it's a new MAV and we need to add it
-        else:
-            newmav = MAV(self, system_id)
-            self.mavs[system_id] = newmav
-            self.state.mav_network.add_mav(newmav)
-            print(self.state.mav_network.mavs)
-            newmav.process_messages(m)
+        return str(self.port)
 
     def is_port_dead(self):
         """
@@ -304,12 +328,18 @@ class MAV:
         self.on_params_initialized = []
         self.on_params_changed = []
 
-    def __str__(self):
-        return str(self.system_id)
+    #def __str__(self):
+    #    return str(self.system_id)
+
+    def get_name(self):
+        return str(self.system_id) + ": " + self.name
 
     def process_messages(self, m):
 
         mtype = m.get_type()
+        #s = " MAV " + str(self.system_id) + ": From (" + str(m.get_header().srcSystem) + ", " + str(m.get_header().srcComponent) + ")"
+        #s = s + ", To (" + m.tar
+        #print(" MAV ") + str(self.system_id) + ": processing message from " + str(m.get_header().srcSystem) + ", " + str(m.get_header().srcComponent)
 
         if mtype == "HEARTBEAT":
             if self.param_fetched == False:
@@ -346,7 +376,6 @@ class MAV:
                #if self.logdir != None:
                 #    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
 
-            # TODO Cannot call GUI callback functions from within a mavlink thread
                 for func in self.on_params_initialized:
                     func()
 

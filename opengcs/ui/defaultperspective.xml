@@ -35,4 +35,25 @@
             <location>right</location>
         </widget>
     </screen>
+    <group>
+        <name>Swarm A</name>
+        <color>#c6ecfc</color>
+    </group>
+    <group>
+        <name>Swarm B</name>
+        <color>#fae1dd</color>
+    </group>
+    <group>
+        <name>Swarm C</name>
+        <color>#B8E2EF</color>
+    </group>
+    <group>
+        <name>Swarm D</name>
+        <color>#FFDFF8</color>
+    </group>
+    <group>
+        <name>Swarm E</name>
+        <color>#FFFFFF</color>
+    </group>
+
 </perspective>

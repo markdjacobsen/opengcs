@@ -1,0 +1,19 @@
+Features:
+---------
+Widget background color based on data source
+Save/load perspective
+Migrate application settings to a QSettings object?
+Implement swarms
+Save/load swarm settings
+Color-coding of swarm widgets
+UDP/TCP connections
+Support components
+Mavlink packet routing to widgets
+
+Bugs:
+-----
+Layout management is clunky
+Tabbed widget persistence
+Thread termination doesn't work properly, and clicking disconnect can cause a hang
+Won't download parameter help files
+

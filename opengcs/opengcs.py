@@ -14,6 +14,9 @@ def main():
 
     # Launch the main application window
     app = QtGui.QApplication(sys.argv)
+    app.setOrganizationName("Uplift Aeronautics")
+    app.setOrganizationDomain("uplift.aero")
+    app.setApplicationName("OpenGCS")
     app.setWindowIcon(QIcon(state.config.settings['appicon']))
     window = MainWindow(state)
     sys.exit(app.exec_())
