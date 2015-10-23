@@ -1,5 +1,11 @@
 """
 This is the root class for all opengcs widgets
+
+All widgets should inherit from this. Child widgets must:
+
+- Call the __init__ superconstructor as the first line of their __init__
+- override refresh() and call the super refresh()
+
 """
 
 from PyQt4.QtGui import *
@@ -20,11 +26,14 @@ class GCSWidget (QDockWidget):
     widgetName = "GCSWidget"
 
     def __init__(self, state, parent):
-        super(GCSWidget, self).__init__("TODO", parent)
+
+        super(GCSWidget, self).__init__("GCSWidget", parent)
         self.setObjectName("GCSWidget")
         self.state = state
-        self.target = MAVTarget.FOCUSED
+        self.source_type = MAVTarget.FOCUSED
         self.setWindowTitle("Blank Widget (Base Class)")
+
+        # Save a reference, so we can reconstruct titele bar if user closes it
         self.title_bar = self.titleBarWidget()
 
         self.create_menu()
@@ -35,7 +44,7 @@ class GCSWidget (QDockWidget):
 
     def set_colors(self):
 
-        if self.target == MAVTarget.GROUP:
+        if self.source_type == MAVTarget.GROUP:
             p = self.palette()
             p.setColor(self.backgroundRole(), QColor(255,0,0))
             self.setPalette(p)

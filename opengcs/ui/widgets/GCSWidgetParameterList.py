@@ -58,7 +58,7 @@ class GCSWidgetParameterList (GCSWidget):
     def refresh(self):
         self.table_params.clearContents()
 
-        if self.target == MAVTarget.FOCUSED:
+        if self.source_type == MAVTarget.FOCUSED:
             mav = self.state.focused_mav
         else:
             # TODO handle specific mav assignments

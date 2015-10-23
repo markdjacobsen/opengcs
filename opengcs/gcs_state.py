@@ -18,8 +18,13 @@ class GCSState():
     and mavlink components, fleet management data, and configuration  data
     """
     def __init__(self):
-        self.mav_network = MAVNetwork(self)
+        # This object contains all data about mavlink connections, MAVs, and their components
+        self.mav_network = MAVNetwork()
+
+        # This object contains all application settings
         self.config = GCSConfig()
+
+        # Flag for whether or not to print debug messages
         self.debug = self.config.settings['debug']
 
         self.focused_mav = None
@@ -34,9 +39,27 @@ class GCSState():
         if self.debug:
             debugger = StateDebugger(self)
 
+        self.mav_network.on_mav_added.append(self.catch_mav_added)
+        self.mav_network.on_network_changed.append(self.catch_network_changed)
+
+    def catch_mav_added(self, mav):
+         # If this is the first mav on the network, automatically give it focus
+        if len(self.mav_network.mavs) == 1:
+            self.set_focused_mav(mav)
+
         return
 
+    def catch_network_changed(self):
+        # If the focused mav is deleted from the network, take away focus
+        if self.focused_mav is MAV:
+            if self.focused_mav.system_id not in self.mav_network.mavs:
+                self.set_focused_mav(None)
+
+        # TODO COMPONENTS similar code as above
+
+
     def fetch_parameter_help(self):
+        # TODO there is a bug (possibly in the urllib library) where the download freezes
         files = []
         for vehicle in ['APMrover2', 'ArduCopter', 'ArduPlane']:
             url = 'http://autotest.diydrones.com/Parameters/%s/apm.pdef.xml' % vehicle
@@ -86,8 +109,9 @@ class StateDebugger:
     def catch_focused_component_changed(self):
         print("Signal: GCSState.on_focused_component_changed, caught by gcs_state.StateDebugger")
 
-    def catch_mav_added(self):
+    def catch_mav_added(self, mav):
         print("Signal: MAVNetwork.on_mav_added, caught by gcs_state.StateDebugger")
+        print("New MAV:" + mav.get_name())
 
     def catch_mav_removed(self):
         print("Signal: MAVNetwork.on_mav_removed, caught by gcs_state.StateDebugger")
@@ -98,8 +122,9 @@ class StateDebugger:
     def catch_connection_removed(self):
         print("Signal: MAVNetwork.on_connection_removed, caught by gcs_state.StateDebugger")
 
-    def catch_component_added(self):
+    def catch_component_added(self, conn):
         print("Signal: MAVNetwork.on_component_added, caught by gcs_state.StateDebugger")
+        print("New connection:" + conn.port)
 
     def catch_component_removed(self):
         print("Signal: MAVNetwork.on_component_removed, caught by gcs_state.StateDebugger")
@@ -108,8 +133,17 @@ class StateDebugger:
         print("Signal: MAVNetwork.catch_nework_changed, caught by gcs_state.StateDebugger")
 
 class MAVNetwork:
-    def __init__(self, state):
-        self.state = state
+    """
+    This object represents the state of the mav network, including multiple connections,
+    multiple mavs per connection, and multiple components per mav. Also, it internally
+    routes incoming mavlink traffic through the connections to the appropriate mavs and
+    components.
+
+    It sends signals every time the network is modified. Any other code needing information
+    about the network state should subscribe to these messages.
+    """
+    def __init__(self):
+
         self.connections = []
         self.mavs = {}
         self.components = []
@@ -125,7 +159,7 @@ class MAVNetwork:
 
     def add_connection(self, connection):
         """
-        Register a new connection with the GCS state
+        Register a new connection with the network
         """
         if connection not in self.connections:
             self.connections.append(connection)
@@ -134,33 +168,24 @@ class MAVNetwork:
 
     def add_mav(self, mav):
         """
-        Register a new mav with the GCS state
+        Register a new mav with the network
         """
-        print("Add mav: " + mav.name)
         if mav not in self.mavs:
             self.mavs[mav.system_id] = mav
 
             for signal in self.on_mav_added:
-                signal()
+                signal(mav)
             for signal in self.on_network_changed:
                 signal()
 
-        # If this is the first mav on the network, automatically give it focus
-        if len(self.mavs) == 1:
-            self.state.set_focused_mav(mav)
-
     def remove_connection(self, conn):
         """
-        Unregister a connection and all associated mavs from the GCS state
+        Unregister a connection and all associated mavs from the network
         """
         if conn in self.connections:
             # Remove all mavs associated with this connection
             for mav in self.get_mavs_on_connection(conn):
                 self.remove_mav(mav)
-                print("removing mav")
-
-                if self.state.focused_mav == mav:
-                    self.state.set_focused_mav(None)
 
             self.connections.remove(conn)
             for signal in self.on_connection_removed:
@@ -170,7 +195,7 @@ class MAVNetwork:
 
     def remove_mav(self, mav):
         """
-        Unregister a mav from the GCS state
+        Unregister a mav from the network
         """
         deletekey = None
 
@@ -277,6 +302,7 @@ class Connection:
         self.state.mav_network.add_connection(self)
 
     def close(self):
+        # TODO shutting down the thread throws exception
         #self.thread.quit()
         self.thread.disconnect()
         self.thread.request_exit()
