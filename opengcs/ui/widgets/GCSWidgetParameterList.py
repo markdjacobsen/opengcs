@@ -13,7 +13,7 @@ class GCSWidgetParameterList (GCSWidget):
     def __init__(self, state, parent):
 
         super(GCSWidgetParameterList, self).__init__(state, parent)
-
+        self.setObjectName("GCSWidgetParameterList")
         self.setWindowTitle("Parameter List")
         self.setMinimumSize(150, 150)
         #self.state.on_focused_mav_changed.append(self.mav_changed)

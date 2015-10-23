@@ -11,7 +11,7 @@ This is the root class for all opengcs widgets
 
 from GCSWidget import *
 from PyQt4.QtGui import *
-from PyQt4.QtCore import QSize
+from PyQt4.QtCore import *
 
 
 class GCSWidgetMAVNetwork (GCSWidget):
@@ -21,9 +21,9 @@ class GCSWidgetMAVNetwork (GCSWidget):
     def __init__(self, state, parent):
 
         super(GCSWidgetMAVNetwork, self).__init__(state, parent)
-
+        self.setObjectName("GCSWidgetMAVNetwork")
         self.setWindowTitle("MAV Network")
-        #self.setWidget(QtGui.QLabel("Map Widget"))
+
 
         self.tree = QTreeWidget()
 
@@ -98,14 +98,13 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
         elif self.action_groups.isChecked():
             # TODO implement refresh() for group view
-            swarm_names = ['Swarm A', 'Swarm B', 'Swarm C', 'Swarm D', 'Swarm E']
-
-            for i in range(0,4):
-                swarm_item = QTreeWidgetItem(self.tree, [swarm_names[i]])
+            swarms = self.state.config.perspective['swarm']
+            for swarm in swarms:
+                swarm_item = QTreeWidgetItem(self.tree, [swarm['name']])
 
                 #color = self.palette().pop()
                 #color = self.palette()
-                color = QColor('#FF0000')
+                color = QColor(swarm['color'])
                 pixmap = QtGui.QPixmap(16, 16)
                 pixmap.fill(color)
                 swarm_item.setIcon(0, QtGui.QIcon(pixmap))

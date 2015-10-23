@@ -115,6 +115,7 @@ class MainWindow(QMainWindow):
         Create the toolbar items used by the main window
         """
         self.toolbar = self.addToolBar('MainToolbar')
+        self.toolbar.setObjectName("MainToolbar")
         self.toolbar.addAction(self.action_settings)
         self.toolbar.addAction(self.action_connections)
 
@@ -278,3 +279,21 @@ class MainWindow(QMainWindow):
                 # TODO when implementing components
                 #for component in mav:
                 #    print "  " + component.get_name()
+
+"""
+These methods use the QSettings system to load window geometry, but I still
+haven't decided if they're the right solution to persist window settings.
+
+    def closeEvent(self, e):
+        # Use the QSettings system to store window geometry in the registry
+        settings = QSettings()
+        settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("windowState", self.saveState())
+        super(MainWindow, self).closeEvent(e)
+
+    def readSettings(self):
+        print("readSettings")
+        settings = QSettings()
+        self.restoreGeometry(settings.value("myWidget/geometry").toByteArray());
+        self.restoreState(settings.value("myWidget/windowState").toByteArray());
+"""

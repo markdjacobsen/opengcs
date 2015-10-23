@@ -1,6 +1,6 @@
 # TODO support for mavlink components is not really here yet
 # TODO catch SerialException when reading serial port
-
+#
 from pymavlink import mavutil
 import threading
 import xmltodict

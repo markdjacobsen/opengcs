@@ -2,7 +2,8 @@
 This is the root class for all opengcs widgets
 """
 
-from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 
 class MAVTarget:
     ALL = -1
@@ -10,7 +11,7 @@ class MAVTarget:
     GROUP = -3
 
 
-class GCSWidget (QtGui.QDockWidget):
+class GCSWidget (QDockWidget):
 
     # This is the name that will appear in the widget list on the "Add New Widget" window.
     # That window searches through the entire widgets directory, recursively searches
@@ -20,14 +21,15 @@ class GCSWidget (QtGui.QDockWidget):
 
     def __init__(self, state, parent):
         super(GCSWidget, self).__init__("TODO", parent)
+        self.setObjectName("GCSWidget")
         self.state = state
         self.target = MAVTarget.FOCUSED
         self.setWindowTitle("Blank Widget (Base Class)")
-        self.title = self.titleBarWidget()
+        self.title_bar = self.titleBarWidget()
 
         self.create_menu()
 
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_menu)
         self.set_colors()
 
@@ -35,12 +37,12 @@ class GCSWidget (QtGui.QDockWidget):
 
         if self.target == MAVTarget.GROUP:
             p = self.palette()
-            p.setColor(self.backgroundRole(), QtGui.QColor(255,0,0))
+            p.setColor(self.backgroundRole(), QColor(255,0,0))
             self.setPalette(p)
             self.setAutoFillBackground(True)
         else:
             p = self.palette()
-            p.setColor(self.backgroundRole(), QtGui.QWidget().palette().color(QtGui.QPalette.Window))
+            p.setColor(self.backgroundRole(), QWidget().palette().color(QPalette.Window))
             self.setPalette(p)
             self.setAutoFillBackground(True)
 
@@ -50,30 +52,35 @@ class GCSWidget (QtGui.QDockWidget):
 
     def create_menu(self):
 
-        self.action_floating = QtGui.QAction('&Float Mode', self)
+        self.action_floating = QAction('&Float Mode', self)
         #actionFloating.setStatusTip('Open the settings menu')
         #actionFloating.setToolTip(('Settings'))
         self.action_floating.triggered.connect(self.on_action_floating)
         self.action_floating.setCheckable(True)
 
-        self.action_tabbed = QtGui.QAction('&Tabbed Mode', self)
+        self.action_tabbed = QAction('&Tabbed Mode', self)
         self.action_tabbed.triggered.connect(self.on_action_tabbed)
         self.action_tabbed.setCheckable(True)
 
-        self.action_titlebar = QtGui.QAction('&Show Title Bar', self)
+        self.action_titlebar = QAction('&Show Title Bar', self)
         self.action_titlebar.triggered.connect(self.on_action_titlebar)
         self.action_titlebar.setCheckable(True)
+        self.action_titlebar.setChecked(True)
 
     def show_menu(self):
-        menu = QtGui.QMenu()
+        menu = QMenu()
         menu.addAction(self.action_floating)
         menu.addAction(self.action_tabbed)
         menu.addAction(self.action_titlebar)
-        selectedItem = menu.exec_(QtGui.QCursor.pos())
+        selectedItem = menu.exec_(QCursor.pos())
 
     def on_action_floating(self):
         # TODO decide how to handle central widgets, which can be floated but not unfloated
         self.setFloating(self.action_floating.isChecked())
+        # Force widgets to have a title bar when they are floating
+        if self.action_floating.isChecked():
+            self.setShowTitlebar(True)
+            self.action_titlebar.setChecked(True)
 
     def on_action_tabbed(self):
         # TODO on_action_tabbed
@@ -84,14 +91,24 @@ class GCSWidget (QtGui.QDockWidget):
         # TODO on_action_titlebar is not working
         # Need to figure out which flags to clear/set to get the right behavior
         print("on_action_titlebar")
+        self.setShowTitlebar(self.action_titlebar.isChecked())
+        """
         if self.action_titlebar.isChecked() == False:
             print("hide")
             self.setTitleBarWidget(None)
             #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         else:
             print("show")
-            self.setTitleBarWidget(self.title)
+            self.setTitleBarWidget(self.title_bar)
             #self.setWindowFlags(None)
+        """
+
+    def setShowTitlebar(self, value):
+        if value:
+            self.setTitleBarWidget(self.title_bar)
+        else:
+            self.setTitleBarWidget(QWidget())
+
 
     def catch_focused_mav_changed(self):
         """

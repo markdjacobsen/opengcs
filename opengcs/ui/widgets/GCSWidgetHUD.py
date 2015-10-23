@@ -9,7 +9,7 @@ class GCSWidgetHUD (GCSWidget):
 
     def __init__(self, state, parent):
         super(GCSWidgetHUD, self).__init__(state, parent)
-
+        self.setObjectName("GCSWidgetHUD")
         self.setWindowTitle("HUD")
 
         self.label_altitude = QLabel("0", self)
