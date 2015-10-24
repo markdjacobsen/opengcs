@@ -5,6 +5,7 @@ from ui.widgets.GCSWidgetHUD import *
 from ui.widgets.GCSWidgetMap import *
 from ui.widgets.GCSWidgetMAVNetwork import *
 from ui.widgets.GCSWidgetParameterList import *
+from ui.widgets.GCSWidgetGauges import *
 from PyQt4 import QtCore, QtGui
 import functools
 
@@ -40,30 +41,30 @@ class MainWindow(QMainWindow):
         self.active_screen = 0
         self.display_screen(self.active_screen)
 
-    def display_screen(self, screenNumber):
+    def display_screen(self, screen_number):
         """
         Display the given screen number, indexed from 0. 0 is the default screen.
         """
         # Erase the current screen
         for w in self.children():
-            if isinstance(w,QDockWidget):
+            if isinstance(w, QDockWidget):
                 self.removeDockWidget(w)
 
-        screen = self.state.config.perspective['screen'][screenNumber]
+        screen = self.state.config.perspective['screen'][screen_number]
         for w in screen['widget']:
             get_class = lambda x: globals()[x]            
-            newWidget = get_class(w['type'])(self.state, self)
+            new_widget = get_class(w['type'])(self.state, self)
             location = w['location'].lower()
             if location == 'center':
-                self.setCentralWidget(newWidget)
+                self.setCentralWidget(new_widget)
             elif location == 'left':
-                self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, newWidget)
+                self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, new_widget)
             elif location == 'right':
-                self.addDockWidget(QtCore.Qt.RightDockWidgetArea, newWidget)
+                self.addDockWidget(QtCore.Qt.RightDockWidgetArea, new_widget)
             elif location == 'top':
-                self.addDockWidget(QtCore.Qt.TopDockWidgetArea, newWidget)
+                self.addDockWidget(QtCore.Qt.TopDockWidgetArea, new_widget)
             else:
-                self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, newWidget)
+                self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, new_widget)
 
     def create_actions(self):
         """

@@ -5,13 +5,13 @@ from GCSWidget import *
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 
-class GCSWidgetHUD2 (GCSWidget):
+class GCSWidgetGauges (GCSWidget):
 
-    widgetName = "HUD 2"
+    widgetName = "Gauges"
 
     def __init__(self, state, parent):
         super(GCSWidgetHUD, self).__init__(state, parent)
-        self.setObjectName("GCSWidgetHUD2")
+        self.setObjectName("GCSWidgetGauges")
         self.setWindowTitle("HUD")
         self.setMinimumSize(200, 200)
 
