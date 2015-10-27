@@ -153,7 +153,6 @@ class MainWindow(QMainWindow):
         self.toolbar.addWidget(self.label_focused_component)
         self.toolbar.addWidget(self.combo_focused_component)
 
-
     def create_statusbar(self):
         """
         Create the status bar used by the main window
@@ -170,7 +169,7 @@ class MainWindow(QMainWindow):
 
         self.menu_view = self.menubar.addMenu('&View')
 
-        self.menu_view_choose_screen = QtGui.QMenu('Choose Screen',self)
+        self.menu_view_choose_screen = QtGui.QMenu('Choose Screen', self)
         for action_screen in self.actions_screens:
             self.menu_view_choose_screen.addAction(action_screen)
 
@@ -199,12 +198,12 @@ class MainWindow(QMainWindow):
         d = ConnectionsDialog(self.state)
         d.exec_()
 
-    def on_action_screen(self, screenNumber):
-        self.active_screen = screenNumber
+    def on_action_screen(self, screen_number):
+        self.active_screen = screen_number
         self.display_screen(self.active_screen)
         for i in range(0,len(self.actions_screens)):
             action_screen = self.actions_screens[i]
-            if i == screenNumber:
+            if i == screen_number:
                 action_screen.setChecked(True)
             else:
                 action_screen.setChecked(False)
@@ -243,12 +242,19 @@ class MainWindow(QMainWindow):
             if isinstance(w, GCSWidget):
                 w.catch_network_changed()
 
-    def catch_focus_changed(self, object, component_id):
+    def catch_focus_changed(self, focused_object, component_id):
 
         # Notify all widgets that the focused datasource is changing
         for w in self.children():
             if isinstance(w, GCSWidget):
-                w.catch_focus_changed(object, component_id)
+                w.catch_focus_changed(focused_object, component_id)
+
+        # Update the combo box
+        for i in range(self.combo_focused_mav.count()):
+            data = self.combo_focused_mav.itemData(i).toPyObject()
+            if data == focused_object:
+                self.combo_focused_mav.setCurrentIndex(i)
+                break
 
         # Upate the routing table for mavlink packets
         self.build_routing_dictionary()
@@ -263,14 +269,13 @@ class MainWindow(QMainWindow):
         mav = self.combo_focused_mav.itemData(idx).toPyObject()
         self.state.set_focus(mav)
 
-
     def create_debug(self):
         '''
         Create a debug menu. Only called if the 'debug' setting is TRUE
         '''
         self.menu_debug = self.menubar.addMenu('&Debug')
 
-        self.action_debug_network = QAction('&Show MAV Network',self)
+        self.action_debug_network = QAction('&Show MAV Network', self)
         self.action_debug_network.triggered.connect(self.on_debug_network)
         self.menu_debug.addAction(self.action_debug_network)
 
@@ -286,9 +291,9 @@ class MainWindow(QMainWindow):
         for w in self.children():
             if isinstance(w, GCSWidget):
                 if w._track_focused:
-                    if isinstance(self.state.focused_object, MAV) and (w._datasource_allowable & WidgetDataSource.SINGLE > 0):
+                    if isinstance(self.state.focused_object, MAV) and w.get_datasource_allowed(WidgetDataSource.SINGLE):
                         self._routing[self.state.focused_object.system_id].append(w)
-                    elif isinstance(self.state.focused_object, Swarm) and (w._datasource_allowable & WidgetDataSource.SWARM > 0):
+                    elif isinstance(self.state.focused_object, Swarm) and w.get_datasource_allowed(WidgetDataSource.SWARM):
                         for mav in self.state.focused_object.mavs:
                             self._routing[mav.system_id].append(w)
 

@@ -187,6 +187,10 @@ class GCSWidget (QDockWidget):
         for signal in self.on_datasource_changed:
             signal(track_focused, object)
 
+    def get_datasource(self):
+
+        return self._datasource
+
     def set_datasource_allowable(self, datasource_allowable):
         """
         Specifies which data sources this widget is capable of dispalying... single, swarm, or both.
@@ -195,6 +199,15 @@ class GCSWidget (QDockWidget):
         :return:
         """
         self._datasource_allowable = datasource_allowable
+
+    def get_datasource_allowed(self, source):
+        """
+        Returns if this widget is allowed to use the given type of datasource.
+
+        :param source: the source to check (i.e. WidgetDataSource.SINGLE)
+        :return: 1 if allowed, 0 otherwise
+        """
+        return (self._datasource_allowable & source > 0)
 
     def process_messages(self, m):
         """

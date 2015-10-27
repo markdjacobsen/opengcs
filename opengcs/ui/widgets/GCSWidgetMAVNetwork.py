@@ -12,7 +12,12 @@ This is the root class for all opengcs widgets
 from GCSWidget import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from gcs_state import *
 
+class MAVTreeWidgetItem (QTreeWidgetItem):
+    def __init__(self, tree, text, data_object):
+        super(MAVTreeWidgetItem, self).__init__(tree, text)
+        self.data_object = data_object
 
 class GCSWidgetMAVNetwork (GCSWidget):
 
@@ -26,8 +31,8 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
 
         self.tree = QTreeWidget()
-
         self.tree.header().setVisible(False)
+        self.tree.itemDoubleClicked.connect(self.on_item_double_click)
 
 
         vbox = QVBoxLayout()
@@ -80,19 +85,19 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
         if self.action_connections.isChecked():
             for connection in self.state.mav_network.connections:
-                conn_item = QTreeWidgetItem(self.tree, [connection.port])
+                conn_item = MAVTreeWidgetItem(self.tree, [connection.port], connection)
                 conn_item.setIcon(0,QIcon('art/16x16/user-available.png'))
                 self.tree.addTopLevelItem(conn_item)
 
                 for mav in self.state.mav_network.get_mavs_on_connection(connection):
-                    mav_item = QTreeWidgetItem(conn_item, [mav.name])
+                    mav_item = MAVTreeWidgetItem(conn_item, [mav.name], mav)
                     mav_item.setIcon(0,QIcon('art/16x16/arrow-right-2.png'))
 
         elif self.action_mavs.isChecked():
             for mavkey in self.state.mav_network.mavs:
                 mav = self.state.mav_network.mavs[mavkey]
 
-                mav_item = QTreeWidgetItem(self.tree, [mav.get_name()])
+                mav_item = MAVTreeWidgetItem(self.tree, [mav.get_name()], mav)
                 mav_item.setIcon(0,QIcon('art/16x16/arrow-right-2.png'))
                 self.tree.addTopLevelItem(mav_item)
 
@@ -100,14 +105,14 @@ class GCSWidgetMAVNetwork (GCSWidget):
             # TODO implement refresh() for group view
             swarms = self.state.config.perspective['swarm']
             for swarm in swarms:
-                swarm_item = QTreeWidgetItem(self.tree, [swarm['name']])
+                swarm_item = MAVTreeWidgetItem(self.tree, [swarm['name']], swarm)
 
                 #color = self.palette().pop()
                 #color = self.palette()
                 color = QColor(swarm['color'])
-                pixmap = QtGui.QPixmap(16, 16)
+                pixmap = QPixmap(16, 16)
                 pixmap.fill(color)
-                swarm_item.setIcon(0, QtGui.QIcon(pixmap))
+                swarm_item.setIcon(0, QIcon(pixmap))
 
                 self.tree.addTopLevelItem(swarm_item)
 
@@ -120,20 +125,21 @@ class GCSWidgetMAVNetwork (GCSWidget):
         self.refresh()
 
     def on_button_groups(self):
-        # TODO implement on_button_groups
         self.action_groups.setChecked(True)
         self.action_mavs.setChecked(False)
         self.action_connections.setChecked(False)
-        print("GCSWidgetMAVNetwork.on_button_groups()")
         self.refresh()
 
     def on_button_mavs(self):
         self.action_groups.setChecked(False)
         self.action_connections.setChecked(False)
         self.action_mavs.setChecked(True)
-        # TODO implement on_button_mavs
-        print("GCSWidgetMAVNetwork.on_button_mavs()")
         self.refresh()
+
+    def on_item_double_click(self, item, col):
+        print(item.data_object)
+        if isinstance(item.data_object, MAV):
+            self.state.set_focus(item.data_object)
 
 
 """

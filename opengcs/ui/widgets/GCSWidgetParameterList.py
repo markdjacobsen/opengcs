@@ -6,6 +6,7 @@ import fnmatch
 # TODO need a clear architecture for reloading data, refreshing view, applyin filter and conditional formatting
 # TODO move filter and buttons from an hbox into a toolbar (see GCSWidgetMAVNetwork)
 # TODO Hide grid row number
+# TODO Does not populate with values when a mav is first connected and parameter download completes
 
 
 class GCSWidgetParameterList (GCSWidget):
@@ -32,6 +33,7 @@ class GCSWidgetParameterList (GCSWidget):
         self.table_params.setHorizontalHeaderLabels(['Parameter','Value'])
         self.table_params.horizontalHeader().setResizeMode(0,QHeaderView.Stretch)
         self.table_params.horizontalHeader().setResizeMode(1,QHeaderView.ResizeToContents)
+        self.table_params.verticalHeader().setVisible(False)
 
         self.lineedit_filter = QLineEdit()
         self.lineedit_filter.textChanged.connect(self.on_filter_changed)
