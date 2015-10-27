@@ -17,3 +17,32 @@ Tabbed widget persistence
 Thread termination doesn't work properly, and clicking disconnect can cause a hang
 Won't download parameter help files
 
+
+Routing Notes:
+--------------
+
+mav_network tracks:
+    all additions/removals of connections, mavs, or moves between swarms
+
+gcs_state tracks:
+    focused object
+
+main_window tracks:
+    a routing dictionary. Keys are system ids. Items are widgets that need to be informed of packets from that system id
+    a list of all open widgets
+main_window listens to:
+    changes in widget datasource
+main_window sends:
+    mavlink packets to the appropriate widgets
+    notification of mav/swarm deletion to appropriate widgets
+    notification of mav additions to appropriate widgets
+
+widget tracks:
+    whether its datasource is the focused object
+    if not, the datasource object
+widget listens to:
+    mavlink packets from main_window
+widget sends:
+    changes to its datasource
+
+

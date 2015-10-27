@@ -5,6 +5,8 @@ import fnmatch
 
 # TODO need a clear architecture for reloading data, refreshing view, applyin filter and conditional formatting
 # TODO move filter and buttons from an hbox into a toolbar (see GCSWidgetMAVNetwork)
+# TODO Hide grid row number
+
 
 class GCSWidgetParameterList (GCSWidget):
 
@@ -16,7 +18,7 @@ class GCSWidgetParameterList (GCSWidget):
         self.setObjectName("GCSWidgetParameterList")
         self.setWindowTitle("Parameter List")
         self.setMinimumSize(150, 150)
-        #self.state.on_focused_mav_changed.append(self.mav_changed)
+        self.set_datasource_allowable(WidgetDataSource.SINGLE)
 
         self.all_params = []
         self.filtered_params = []
@@ -56,17 +58,15 @@ class GCSWidgetParameterList (GCSWidget):
         self.apply_filter()
 
     def refresh(self):
+
+        super(GCSWidgetParameterList, self).refresh()
+
         self.table_params.clearContents()
 
-        if self.source_type == MAVTarget.FOCUSED:
-            mav = self.state.focused_mav
-        else:
-            # TODO handle specific mav assignments
+        if self._datasource is None:
             return
 
-        if mav is None:
-            return
-
+        mav = self._datasource
         self.all_params = mav.mav_param
 
         self.table_params.setRowCount(mav.mav_param_count)

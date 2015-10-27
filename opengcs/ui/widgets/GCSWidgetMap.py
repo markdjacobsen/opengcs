@@ -11,9 +11,14 @@ class GCSWidgetMap (GCSWidget):
         self.setObjectName("GCSWidgetMap")
         self.setWindowTitle("Map")
         self.setWidget(QtGui.QLabel("Map Widget"))
+        self.setMinimumSize(400, 400)
 
+        # Placeholder color background
         p = self.palette()
         p.setColor(self.backgroundRole(), QtCore.Qt.blue)
         self.setPalette(p)
         self.setAutoFillBackground(True)
-        self.setMinimumSize(400, 400)
+
+    def refresh(self):
+
+        super(GCSWidgetMap, self).refresh()

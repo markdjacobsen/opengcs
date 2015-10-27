@@ -111,14 +111,6 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
                 self.tree.addTopLevelItem(swarm_item)
 
-
-
-
-    def catch_network_changed(self):
-        print("MAVNetwork changed")
-        self.refresh()
-        return
-
     def on_button_connections(self):
         # TODO implement on_button_connections
         self.action_connections.setChecked(True)
@@ -142,3 +134,11 @@ class GCSWidgetMAVNetwork (GCSWidget):
         # TODO implement on_button_mavs
         print("GCSWidgetMAVNetwork.on_button_mavs()")
         self.refresh()
+
+
+"""
+    def catch_network_changed(self):
+        print("MAVNetwork changed")
+        self.refresh()
+        return
+"""

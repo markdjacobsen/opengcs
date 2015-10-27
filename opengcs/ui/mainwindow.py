@@ -1,3 +1,6 @@
+# TODO: figure out appropriate times to rebuild routing table
+# TODO: catch when widgets change their datasource
+
 from PyQt4.QtGui import *
 from dialogs import *
 from ui.widgets.GCSWidget import *
@@ -18,9 +21,9 @@ class MainWindow(QMainWindow):
 
         # The MainWindow listens to these events from the GCS state, so it can update
         # widgets as appropriate
-        self.state.on_focused_mav_changed.append(self.catch_focused_mav_changed)
-        self.state.on_focused_component_changed.append(self.catch_focused_component_changed)
+        self.state.on_focus_changed.append(self.catch_focus_changed)
         self.state.mav_network.on_network_changed.append(self.catch_network_changed)
+        self.state.mav_network.on_mavlink_packet.append(self.forward_packets_to_widgets)
 
     def initUI(self):
         """
@@ -49,10 +52,16 @@ class MainWindow(QMainWindow):
             if isinstance(w,QDockWidget):
                 self.removeDockWidget(w)
 
+        # Erase the current mavlink routing table
+        self._routing = {}
+
         screen = self.state.config.perspective['screen'][screenNumber]
         for w in screen['widget']:
+            # Initialize and display each widget
             get_class = lambda x: globals()[x]            
             newWidget = get_class(w['type'])(self.state, self)
+            newWidget.on_datasource_changed.append(self.catch_widget_datasource_changed)
+
             location = w['location'].lower()
             if location == 'center':
                 self.setCentralWidget(newWidget)
@@ -64,6 +73,11 @@ class MainWindow(QMainWindow):
                 self.addDockWidget(QtCore.Qt.TopDockWidgetArea, newWidget)
             else:
                 self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, newWidget)
+
+        # We have a new set of widgets on screen, so need to rebuild the routing table
+        # to forward mavlink packets to these widgets.
+        self.build_routing_dictionary()
+
 
     def create_actions(self):
         """
@@ -212,18 +226,15 @@ class MainWindow(QMainWindow):
 
     def catch_network_changed(self):
 
-        # Update combo boxes
+        # Update the combo boxes for focused object
         # TODO support sorting of focused MAV combo box. Sort keys?
-        print("mainwindow.catch_network_changed()")
         self.combo_focused_mav.blockSignals(True)
         self.combo_focused_mav.clear()
-        #print("MAV count: " + str(len(self.state.mav_network.mavs)))
         for mavkey in self.state.mav_network.mavs:
-            print("mav found")
             mav = self.state.mav_network.mavs[mavkey]
             v = QtCore.QVariant(mav)
             self.combo_focused_mav.addItem(mav.get_name(), v)
-            if mav == self.state.focused_mav:
+            if mav == self.state.focused_object:
                 self.combo_focused_mav.setCurrentIndex(self.combo_focused_mav.count()-1)
         self.combo_focused_mav.blockSignals(False)
 
@@ -232,27 +243,25 @@ class MainWindow(QMainWindow):
             if isinstance(w, GCSWidget):
                 w.catch_network_changed()
 
-    def catch_focused_mav_changed(self):
+    def catch_focus_changed(self, object, component_id):
 
-        # Notify all widgets
+        # Notify all widgets that the focused datasource is changing
         for w in self.children():
             if isinstance(w, GCSWidget):
-                w.catch_focused_mav_changed()
+                w.catch_focus_changed(object, component_id)
 
-    def catch_focused_component_changed(self):
-        # TODO implement catch_focused_component_changed
-        print("mainwindow.catch_focused_component_changed()")
+        # Upate the routing table for mavlink packets
+        self.build_routing_dictionary()
 
     def on_combo_focused_component(self):
-        # TODO implement on_combo_focused_component
+        # _COMPOMENT implement on_combo_focused_component
         return
 
     def on_combo_focused_mav(self):
 
-        print("main.window_oncombo_focused_mav()")
         idx = self.combo_focused_mav.currentIndex()
         mav = self.combo_focused_mav.itemData(idx).toPyObject()
-        self.state.set_focused_mav(mav)
+        self.state.set_focus(mav)
 
 
     def create_debug(self):
@@ -264,6 +273,24 @@ class MainWindow(QMainWindow):
         self.action_debug_network = QAction('&Show MAV Network',self)
         self.action_debug_network.triggered.connect(self.on_debug_network)
         self.menu_debug.addAction(self.action_debug_network)
+
+    def build_routing_dictionary(self):
+        """
+        This rebuilds the routing table, which keeps track of which widgets are listening to which
+        system_ids. Any time a packet comes in, the main window forwards the packet to all widgets
+        listening for that system_id.
+        """
+        self._routing = {}
+        for i in range(0,254):
+            self._routing[i] = []
+        for w in self.children():
+            if isinstance(w, GCSWidget):
+                if w._track_focused:
+                    if isinstance(self.state.focused_object, MAV) and (w._datasource_allowable & WidgetDataSource.SINGLE > 0):
+                        self._routing[self.state.focused_object.system_id].append(w)
+                    elif isinstance(self.state.focused_object, Swarm) and (w._datasource_allowable & WidgetDataSource.SWARM > 0):
+                        for mav in self.state.focused_object.mavs:
+                            self._routing[mav.system_id].append(w)
 
     def on_debug_network(self):
 
@@ -279,6 +306,27 @@ class MainWindow(QMainWindow):
                 # TODO when implementing components
                 #for component in mav:
                 #    print "  " + component.get_name()
+
+    def forward_packets_to_widgets(self, m):
+        """
+        This captures every mavlink packet traveling over the mav network. It forwards packets
+        to widgets listening for specific system_ids.
+        """
+        system_id = m.get_header().srcSystem
+        for w in self._routing[system_id]:
+            w.process_messages(m)
+
+            # This code block is used for performance testing. It sends many more packets,
+            # to get a sense for how many mavs we can operate without straining the application.
+            #for i in range(0,400):
+            #    w.process_messages(m)
+
+    def catch_widget_datasource_changed(self, widget, track_focused, object):
+        """
+        This event listens for a signal from widgets, indicating they are changing their
+        datasource. That is a cue to rebuild the routing dictionary.
+        """
+        self.build_routing_dictionary()
 
 """
 These methods use the QSettings system to load window geometry, but I still

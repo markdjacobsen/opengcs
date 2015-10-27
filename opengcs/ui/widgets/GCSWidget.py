@@ -1,20 +1,32 @@
+# TODO widgets need to be assigned a datasource when created
+
 """
 This is the root class for all opengcs widgets
 
 All widgets should inherit from this. Child widgets must:
 
 - Call the __init__ superconstructor as the first line of their __init__
+- In the init() call, call set_allowable_datasource().
+- In the init() call, call set_datasource()
 - override refresh() and call the super refresh()
-
+  has/have focus in the main window.
 """
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from gcs_state import *
 
-class MAVTarget:
-    ALL = -1
-    FOCUSED = -2
-    GROUP = -3
+class WidgetDataSource:
+    """
+    These constants specify whether a widget is displaying a single aircraft, or a
+    swarm of aircraft.
+    """
+    SINGLE = 0b10
+    SWARM = 0b01
+
+
+
+FOCUSED = [0]
 
 
 class GCSWidget (QDockWidget):
@@ -30,7 +42,14 @@ class GCSWidget (QDockWidget):
         super(GCSWidget, self).__init__("GCSWidget", parent)
         self.setObjectName("GCSWidget")
         self.state = state
-        self.source_type = MAVTarget.FOCUSED
+
+        # Signals other code can subscribe to
+        self.on_datasource_changed = []
+
+        # Default: Single MAV, tracking focused object
+        self.set_datasource_allowable(WidgetDataSource.SINGLE)
+        self.set_datasource(True)
+
         self.setWindowTitle("Blank Widget (Base Class)")
 
         # Save a reference, so we can reconstruct titele bar if user closes it
@@ -42,11 +61,20 @@ class GCSWidget (QDockWidget):
         self.customContextMenuRequested.connect(self.show_menu)
         self.set_colors()
 
-    def set_colors(self):
 
-        if self.source_type == MAVTarget.GROUP:
+
+    def set_colors(self):
+        """
+        Color codes widgets based on what mav or swarm it represents. This is a human factors
+         feature so everything for each aircraft/swarm can be distinguished by a specific
+         color.
+        """
+        # TODO implement set_colors. Need to think more about how to handle swarm vs mav colors.
+        # Perhaps a hatching pattern for one, and solid colors for the other?
+        if self._datasource is Swarm or self._datasource is MAV:
             p = self.palette()
-            p.setColor(self.backgroundRole(), QColor(255,0,0))
+            # TODO
+            p.setColor(self.backgroundRole(), QColor(self._datasource.color))
             self.setPalette(p)
             self.setAutoFillBackground(True)
         else:
@@ -56,8 +84,18 @@ class GCSWidget (QDockWidget):
             self.setAutoFillBackground(True)
 
     def refresh(self):
-        self.set_colors()
 
+        # Check to ensure that the widget is tracking the focused object, if necessary
+        if self._track_focused:
+            if isinstance(self.state.focused_object, MAV) and (self._datasource_allowable & WidgetDataSource.SINGLE > 0):
+                self._datasource = self.state.focused_object
+            elif isinstance(self.state.focused_object, Swarm) and (self._datasource_allowable & WidgetDataSource.SWARM > 0):
+                self._datasource = self.state.focused_object
+            else:
+                self._datasource = None
+
+        # Takes care of color-coding the widget based on the datasource object
+        self.set_colors()
 
     def create_menu(self):
 
@@ -119,7 +157,7 @@ class GCSWidget (QDockWidget):
             self.setTitleBarWidget(QWidget())
 
 
-    def catch_focused_mav_changed(self):
+    def catch_focus_changed(self, object, component_id):
         """
         Called automatically when the focused mav is changed.
 
@@ -133,27 +171,36 @@ class GCSWidget (QDockWidget):
         """
         Called automatically when the structure of the MAV network is
         changed (MAV or component is added or removed).
+        Default behavior is to trigger a refresh.
 
-        The default GCS widget behavior is to call the refresh() function.
-        Widgets inheriting from GCSWidget may override this to customize
-        their own behavior.
         """
         self.refresh()
         return
 
+    def set_datasource(self, track_focused, object=None):
+        """
+        Set the data source type
+        """
+        self._track_focused = track_focused
+        self._datasource = object
 
+        for signal in self.on_datasource_changed:
+            signal(track_focused, object)
 
+    def set_datasource_allowable(self, datasource_allowable):
+        """
+        Specifies which data sources this widget is capable of dispalying... single, swarm, or both.
 
+        :param datasource_allowable: OR'd bits from the WidgetDataSource, indicating single, swarm, or both
+        :return:
+        """
+        self._datasource_allowable = datasource_allowable
 
-
-    # def mousePressEvent(self, QMouseEvent):
-    #     # DEBUG this exists to assist with layout management
-    #     print("Features" + str(self.features()))
-    #     print("Height: " + str(self.height()), "Width: " + str(self.width()))
-    #     print("Is floating: " + str(self.isFloating()))
-    #     print("Pos: " + str(self.pos()))
-    #     print("Size: " + str(self.size()))
-    #     print("X: " + str(self.x))
-    #     print("Y: " + str(self.y))
-
+    def process_messages(self, m):
+        """
+        Override this to handle incoming mavlink messages. The widget will only receive messages from sys_ids
+        that the widget has specified as a datasource.
+        :param m: mavlink message packet
+        """
+        return
 

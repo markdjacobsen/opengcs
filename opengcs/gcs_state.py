@@ -1,5 +1,6 @@
-# TODO support for mavlink components is not really here yet
+# _COMPONENT tag is used to mark any place we need to modify code to add support for multiple components
 # TODO catch SerialException when reading serial port
+# TODO connecting to a 2nd MAV causes the focus to change to the new mav, when it shouldn't
 #
 from pymavlink import mavutil
 import threading
@@ -10,7 +11,13 @@ import multiprocessing
 import urllib2
 from PyQt4.QtCore import *
 
-class GCSState():
+SINGLE = 0b01
+SWARM = 0b10
+
+
+
+class GCSState:
+
     """
     Root data model item for gcsstation.
 
@@ -27,12 +34,11 @@ class GCSState():
         # Flag for whether or not to print debug messages
         self.debug = self.config.settings['debug']
 
-        self.focused_mav = None
-        self.focused_component = None
+        self.focused_object = None
+        self.focused_component_id = 0
 
         # These are signals that other code can subscribe to
-        self.on_focused_mav_changed = []
-        self.on_focused_component_changed = []
+        self.on_focus_changed = []
 
         # Debug object, which sends debug messages whenever signals are fired.
         # Comment out to reduce verbosity.
@@ -40,23 +46,41 @@ class GCSState():
             debugger = StateDebugger(self)
 
         self.mav_network.on_mav_added.append(self.catch_mav_added)
-        self.mav_network.on_network_changed.append(self.catch_network_changed)
+        self.mav_network.on_mav_removed.append(self.catch_mav_removed)
+        # _COMPONENT
+        # self.mav_network.on_component_added.append(self.catch_component_added)
+        # self.mav_network.on_component_removed.append(self.catch_component_removed)
+
+    def set_focus(self, object, component_id=0):
+        """
+        Set the UI focus to a specific object (mav or swarm)
+
+        """
+
+        # If these are already selected, do nothing
+        if self.focused_object == object and self.focused_component_id == component_id:
+            return
+
+        self.focused_object = object
+        self.focused_component_id = component_id
+
+        for signal in self.on_focus_changed:
+            signal(self.focused_object, self.focused_component_id)
+
+
+    # _COMPONENT add focus_add_component() and focus_remove_component methods
 
     def catch_mav_added(self, mav):
-         # If this is the first mav on the network, automatically give it focus
-        if len(self.mav_network.mavs) == 1:
-            self.set_focused_mav(mav)
-
+        # If this is the first mav on the network, automatically give it focus
+        if len((self.mav_network.mavs.keys())) == 1:
+            self.set_focus(mav)
         return
 
-    def catch_network_changed(self):
-        # If the focused mav is deleted from the network, take away focus
-        if self.focused_mav is MAV:
-            if self.focused_mav.system_id not in self.mav_network.mavs:
-                self.set_focused_mav(None)
-
-        # TODO COMPONENTS similar code as above
-
+    def catch_mav_removed(self, mav):
+        # If the mav network signals a mav has been removed from the network,
+        # we also need to remove it from the focus group
+        if self.focused_object == mav:
+            self.set_focus(None)
 
     def fetch_parameter_help(self):
         # TODO there is a bug (possibly in the urllib library) where the download freezes
@@ -76,62 +100,6 @@ class GCSState():
             print(e)
 
 
-    def set_focused_mav(self, mav):
-        if self.focused_mav != mav:
-            self.focused_mav = mav
-            for signal in self.on_focused_mav_changed:
-                signal()
-
-class StateDebugger:
-    """
-    This class is for debugging signals/slots related to the GCSState and MAVNetwork objects. It is
-    essentially a dummy that subscribes to a variety of signals and prints debug messages.
-    """
-    def __init__(self, state):
-        self.state = state
-        self.state.on_focused_mav_changed.append(self.catch_focused_mav_changed)
-        self.state.on_focused_component_changed.append(self.catch_focused_component_changed)
-        self.state.mav_network.on_mav_added.append(self.catch_mav_added)
-        self.state.mav_network.on_mav_removed.append(self.catch_mav_removed)
-        self.state.mav_network.on_connection_added.append(self.catch_connection_added)
-        self.state.mav_network.on_connection_removed.append(self.catch_connection_removed)
-        self.state.mav_network.on_component_removed.append(self.catch_component_removed)
-        self.state.mav_network.on_component_added.append(self.catch_component_added)
-        self.state.mav_network.on_network_changed.append(self.catch_network_changed)
-
-    def catch_focused_mav_changed(self):
-        print("Signal: GCSState.on_focused_mav_changed, caught by gcs_state.StateDebugger")
-        if self.state.focused_mav is MAV:
-            print("New focus: " + self.state.focused_mav.get_name())
-        else:
-            print("No MAV focused")
-
-    def catch_focused_component_changed(self):
-        print("Signal: GCSState.on_focused_component_changed, caught by gcs_state.StateDebugger")
-
-    def catch_mav_added(self, mav):
-        print("Signal: MAVNetwork.on_mav_added, caught by gcs_state.StateDebugger")
-        print("New MAV:" + mav.get_name())
-
-    def catch_mav_removed(self):
-        print("Signal: MAVNetwork.on_mav_removed, caught by gcs_state.StateDebugger")
-
-    def catch_connection_added(self):
-        print("Signal: MAVNetwork.on_connection_added, caught by gcs_state.StateDebugger")
-
-    def catch_connection_removed(self):
-        print("Signal: MAVNetwork.on_connection_removed, caught by gcs_state.StateDebugger")
-
-    def catch_component_added(self, conn):
-        print("Signal: MAVNetwork.on_component_added, caught by gcs_state.StateDebugger")
-        print("New connection:" + conn.port)
-
-    def catch_component_removed(self):
-        print("Signal: MAVNetwork.on_component_removed, caught by gcs_state.StateDebugger")
-
-    def catch_network_changed(self):
-        print("Signal: MAVNetwork.catch_nework_changed, caught by gcs_state.StateDebugger")
-
 class MAVNetwork:
     """
     This object represents the state of the mav network, including multiple connections,
@@ -146,7 +114,9 @@ class MAVNetwork:
 
         self.connections = []
         self.mavs = {}
-        self.components = []
+
+        # Create a list with one swarm, representing all mavs
+        self.swarms = [Swarm("All MAVs")]
 
         # These are signals that other code can subscribe to
         self.on_mav_added = []
@@ -156,6 +126,7 @@ class MAVNetwork:
         self.on_component_added = []
         self.on_component_removed = []
         self.on_network_changed = []
+        self.on_mavlink_packet = []
 
     def add_connection(self, connection):
         """
@@ -171,7 +142,10 @@ class MAVNetwork:
         Register a new mav with the network
         """
         if mav not in self.mavs:
+            # Add this mav to the dictionary of all mavs
             self.mavs[mav.system_id] = mav
+            # Add this mav to swarm 0, which always represents all mavs
+            self.swarms[0].add_mav(mav)
 
             for signal in self.on_mav_added:
                 signal(mav)
@@ -203,10 +177,15 @@ class MAVNetwork:
             if self.mavs[mavkey] == mav:
                 deletekey = mavkey
 
-        if deletekey == None:
+        if deletekey is None:
             return
 
+        # Remove this mav from the dictionary of all mavs
         del self.mavs[mavkey]
+        # Remove this mav from all swarms where it's found
+        for swarm in self.swarms:
+            swarm.remove_mav(mav)
+
         for signal in self.on_mav_removed:
             signal()
         for signal in self.on_network_changed:
@@ -219,11 +198,18 @@ class MAVNetwork:
                 mavs.append(self.mavs[mavkey])
         return mavs
 
+    def get_mav_ids(self):
+        """
+        Get a list of system_ids active on the network
+        :return: a list of system_id numbers
+        """
+        return list(self.mavs.keys())
+
     def route_messages(self, m, conn):
         """
         This method receives mavlink traffic from ALL open connections. It forwards
         messages to the appropriate mav objects, and adds new mavs as they are
-        detected.
+        detected. It alsos signals any subscribers.
         """
 
         system_id = m.get_header().srcSystem
@@ -244,6 +230,38 @@ class MAVNetwork:
             self.add_mav(newmav)
             newmav.process_messages(m)
 
+        # Forward packet to subscribers
+        for signal in self.on_mavlink_packet:
+            signal(m)
+
+class Swarm:
+    def __init__(self, name="New Swarm", mavs=[], color = '#000000'):
+        self.name = name
+        self.mavs = mavs
+        self.color = color
+
+        # Signals
+        self.on_swarm_changed = []
+
+    def add_mav(self, mav):
+        """
+        Add a mav to this swarm
+        """
+        if mav not in self.mavs:
+            self.mavs.append(mav)
+            for signal in self.on_swarm_changed:
+                signal()
+
+    def remove_mav(self, mav):
+        """
+        Remove a mav from this swarm
+        """
+        if mav in self.mavs:
+            self.mavs.remove(mav)
+            for signal in self.on_swarm_changed:
+                signal()
+
+
 class MavlinkThread(QThread):
     """
     This class exists to read incoming mavlink messages in a secondary thread.
@@ -261,8 +279,7 @@ class MavlinkThread(QThread):
 
     def run(self):
 
-        while self.command_exit == False:
-            #print(self.command_exit)
+        while self.command_exit is False:
             m = self.master.recv_match(blocking=True)
             if not m:
                 return
@@ -302,6 +319,9 @@ class Connection:
         self.state.mav_network.add_connection(self)
 
     def close(self):
+        """
+        Close the connection
+        """
         # TODO shutting down the thread throws exception
         #self.thread.quit()
         self.thread.disconnect()
@@ -321,6 +341,7 @@ class Connection:
         """
         return self.master.portdead
 
+
 class MAV:
     """
     This class encapsulates a micro air vehicle (MAV), and theoretically represents the
@@ -339,6 +360,7 @@ class MAV:
         self.conn = conn
         self.master = conn.master
         self.name = "MAV"
+        self.color = '#FFFFFF'
 
         # Properties related to parameters
         self.mav_param_set = set()  # Index numbers of all parameters received
@@ -354,13 +376,14 @@ class MAV:
         self.on_params_initialized = []
         self.on_params_changed = []
 
-    #def __str__(self):
-    #    return str(self.system_id)
-
     def get_name(self):
         return str(self.system_id) + ": " + self.name
 
     def process_messages(self, m):
+        """
+        Process all incoming mavlink packets from the corresponding vehicle, and forward traffic to onboard
+        components as necessary.
+        """
 
         mtype = m.get_type()
         #s = " MAV " + str(self.system_id) + ": From (" + str(m.get_header().srcSystem) + ", " + str(m.get_header().srcComponent) + ")"
@@ -419,7 +442,52 @@ class MAV:
             return
         self.mav_param.mavset(self.master, param.upper(), value, retries=3)
 
-# This is included for reference, from mavproxy module_param, although it is not currently used
+
+class StateDebugger:
+    """
+    This class is for debugging signals/slots related to the GCSState and MAVNetwork objects. It is
+    essentially a dummy that subscribes to a variety of signals and prints debug messages.
+    """
+    def __init__(self, state):
+        self.state = state
+        self.state.on_focus_changed.append(self.catch_focus_changed)
+        self.state.mav_network.on_mav_added.append(self.catch_mav_added)
+        self.state.mav_network.on_mav_removed.append(self.catch_mav_removed)
+        self.state.mav_network.on_connection_added.append(self.catch_connection_added)
+        self.state.mav_network.on_connection_removed.append(self.catch_connection_removed)
+        self.state.mav_network.on_component_removed.append(self.catch_component_removed)
+        self.state.mav_network.on_component_added.append(self.catch_component_added)
+        self.state.mav_network.on_network_changed.append(self.catch_network_changed)
+        self.state.on_focus_changed.append(self.catch_focus_changed)
+
+    def catch_focus_changed(self, object, component_id):
+        print("Signal: GCSState.on_focus_changed, caught by gcs_state.StateDebugger")
+        print("New focus: " + str(object))
+
+    def catch_mav_added(self, mav):
+        print("Signal: MAVNetwork.on_mav_added, caught by gcs_state.StateDebugger")
+        print("New MAV:" + mav.get_name())
+
+    def catch_mav_removed(self):
+        print("Signal: MAVNetwork.on_mav_removed, caught by gcs_state.StateDebugger")
+
+    def catch_connection_added(self):
+        print("Signal: MAVNetwork.on_connection_added, caught by gcs_state.StateDebugger")
+
+    def catch_connection_removed(self):
+        print("Signal: MAVNetwork.on_connection_removed, caught by gcs_state.StateDebugger")
+
+    def catch_component_added(self, conn):
+        print("Signal: MAVNetwork.on_component_added, caught by gcs_state.StateDebugger")
+        print("New connection:" + conn.port)
+
+    def catch_component_removed(self):
+        print("Signal: MAVNetwork.on_component_removed, caught by gcs_state.StateDebugger")
+
+    def catch_network_changed(self):
+        print("Signal: MAVNetwork.catch_nework_changed, caught by gcs_state.StateDebugger")
+
+# Everything below this line is included for reference, from mavproxy module_param, although it is not currently used
 class ParamState:
     '''this class is separated to make it possible to use the parameter
        functions on a secondary connection'''

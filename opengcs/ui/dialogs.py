@@ -1,9 +1,11 @@
 # TODO: make disconnect button work
 # TODO: close all ports upon closing program
 # TODO: update port status icon / alert to dead ports
+# TODO: disconnect needs to refresh the window, removing connection from open ports and adding it to available ports
+# TODO: need a hook that detects serial port changes while on the ConnctionsDialog
 
 from PyQt4.QtGui import *
-import PyQt4.QtCore
+from PyQt4.QtCore import *
 from util import serial_ports, import_package
 from gcs_state import *
 import sys
@@ -13,20 +15,23 @@ import functools
 from ui.widgets.GCSWidget import GCSWidget
 
 class ConnectionsDialog (QDialog):
+
     def __init__(self, state, parent=None):
         super(ConnectionsDialog, self).__init__(parent)
         self.state = state
         self.init_ui()
 
     def init_ui(self):
+
         self.setWindowTitle('Edit Connections')
-        self.resize(700,200)
+        self.resize(700, 200)
 
         open_connections_label = QLabel('Open connections:', self)
-        self.table_connections = QTableWidget(1,4,self)
-        self.table_connections.setHorizontalHeaderLabels(['Status','Port','Number','Disconnect'])
-        self.table_connections.horizontalHeader().setResizeMode(0,QHeaderView.ResizeToContents)
-        self.table_connections.horizontalHeader().setResizeMode(1,QHeaderView.Stretch)
+        self.table_connections = QTableWidget(1, 4, self)
+        self.table_connections.setHorizontalHeaderLabels(['Status', 'Port', 'Number', 'Disconnect'])
+        self.table_connections.horizontalHeader().setResizeMode(0, QHeaderView.ResizeToContents)
+        self.table_connections.horizontalHeader().setResizeMode(1, QHeaderView.Stretch)
+        self.table_connections.horizontalHeader().setResizeMode(2, QHeaderView.ResizeToContents)
         new_connection_label = QLabel('Open new connection:', self)
         self.combo_new_connection = QComboBox(self)
 
@@ -68,6 +73,7 @@ class ConnectionsDialog (QDialog):
         self.update_ports()
 
     def update_ports(self):
+
         self.serialports = serial_ports()
 
         self.table_connections.clearContents()
@@ -86,12 +92,12 @@ class ConnectionsDialog (QDialog):
                 status.setIcon(QIcon('art/16x16/dialog-clean.png'))
             else:
                 status.setIcon(QIcon('art/16x16/dialog-error-2.png'))
-            self.table_connections.setItem(row,0,status)
-            self.table_connections.setItem(row,1,QTableWidgetItem(conn.port))
-            self.table_connections.setItem(row,2,QTableWidgetItem(conn.number))
-            btnDisconnect = QPushButton('Disconnect')
-            self.table_connections.setCellWidget(row,3,btnDisconnect)
-            btnDisconnect.clicked.connect(functools.partial(self.on_button_disconnect, row))
+            self.table_connections.setItem(row, 0, status)
+            self.table_connections.setItem(row, 1, QTableWidgetItem(conn.port))
+            self.table_connections.setItem(row, 2, QTableWidgetItem(str(conn.number)))
+            btn_disconnect = QPushButton('Disconnect')
+            self.table_connections.setCellWidget(row, 3, btn_disconnect)
+            btn_disconnect.clicked.connect(functools.partial(self.on_button_disconnect, row))
             row = row + 1
 
         self.combo_new_connection.clear()
@@ -101,9 +107,6 @@ class ConnectionsDialog (QDialog):
         self.combo_new_connection.addItem('TCP')
         self.combo_new_connection.addItem('UDP')
         self.combo_new_connection.editTextChanged.connect(self.on_connection_combo_changed)
-
-
-
 
     def on_button_ok(self):
         self.close()
@@ -116,9 +119,9 @@ class ConnectionsDialog (QDialog):
             try:
                 conn = Connection(self.state, str(self.combo_new_connection.currentText()), int(self.lineedit_new_port.text()))
             except ValueError:
-                msgBox = QMessageBox()
-                msgBox.setText("Please enter a valid port number")
-                msgBox.exec_()
+                msg_box = QMessageBox()
+                msg_box.setText("Please enter a valid port number")
+                msg_box.exec_()
                 return
         else:
             # TODO: I temporarily moved the Connection constructor out of a 'try' block, because it is causing
@@ -129,9 +132,9 @@ class ConnectionsDialog (QDialog):
             #try:
             #    conn = Connection(self.state, str(self.newConnectionCombo.currentText()), int(self.newPortCombo.currentText()))
             #except:
-            #    msgBox = QMessageBox()
-            #    msgBox.setText("Unexpected error connecting to serial port")
-            #    msgBox.exec_()
+            #    msg_box = QMessageBox()
+            #    msg_box.setText("Unexpected error connecting to serial port")
+            #    msg_box.exec_()
             #    return
 
         self.state.mav_network.add_connection(conn)
