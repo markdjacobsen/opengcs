@@ -12,6 +12,8 @@ All widgets should inherit from this. Child widgets must:
   has/have focus in the main window.
 """
 
+import sys
+from os import path
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from gcs_state import *
@@ -52,7 +54,7 @@ class GCSWidget (QDockWidget):
 
         self.setWindowTitle("Blank Widget (Base Class)")
 
-        # Save a reference, so we can reconstruct titele bar if user closes it
+        # Save a reference, so we can reconstruct title bar if user closes it
         self.title_bar = self.titleBarWidget()
 
         self.create_menu()
@@ -61,6 +63,11 @@ class GCSWidget (QDockWidget):
         self.customContextMenuRequested.connect(self.show_menu)
         self.set_colors()
 
+        # Get application path and build asset path
+        # TODO we should get the app's path from somewhere else, perhaps a config file
+        app_dir = path.dirname(sys.argv[0])
+        asset_dir = 'art/hud'
+        self.asset_path = path.join(app_dir, asset_dir)
 
 
     def set_colors(self):
