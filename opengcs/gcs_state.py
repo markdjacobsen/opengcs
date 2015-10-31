@@ -31,6 +31,10 @@ class GCSState:
         # This object contains all application settings
         self.config = GCSConfig()
 
+        # The active perspective
+        self.perspective = GCSPerspective()
+
+
         # Flag for whether or not to print debug messages
         self.debug = self.config.settings['debug']
 
@@ -802,3 +806,39 @@ if __name__ == "__main__":
     i = 0
     while 0 < 1:
         i = 1 - i
+
+class GCSPerspective:
+    def __init__(self):
+        self.screens = []
+
+class GCSScreen:
+    def __init__(self):
+        self.widget_templates = []
+        return
+
+class GCSToolbarItem:
+    def __init__(self):
+        self.tooltip_text = ""
+        self.statusbar_text = ""
+        self.icon_file = ""
+        self.function = -1
+        self.function_param1 = ""
+
+class GCSWidgetTemplate:
+    def __init__(self):
+        self.classname = ""
+        self.settings = {}
+        self.position = None
+        self.show_titlebar = True
+        self.floating = False
+        self.geometry = None
+
+
+class GCSToolbarItemFunctions:
+    UNDEFINED = -1
+    CHANGE_SCREEN = 0
+    RUN_SCRIPT = 1
+
+
+
+

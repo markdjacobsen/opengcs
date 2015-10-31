@@ -8,6 +8,7 @@ from ui.widgets.GCSWidgetHUD import *
 from ui.widgets.GCSWidgetMap import *
 from ui.widgets.GCSWidgetMAVNetwork import *
 from ui.widgets.GCSWidgetParameterList import *
+from ui.widgets.GCSWidgetPlot import *
 from PyQt4 import QtCore, QtGui
 import functools
 
@@ -219,7 +220,7 @@ class MainWindow(QMainWindow):
     def on_action_add_widget(self):
         # TODO on_action_add_widget
         print("TODO onActionAddWidget")
-        d = AddWidgetDialog(self.state)
+        d = EditPerspectiveDialog(self.state)
         d.exec_()
         d.show()
 

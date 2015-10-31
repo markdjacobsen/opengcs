@@ -162,17 +162,81 @@ class ConnectionsDialog (QDialog):
             self.combo_new_port.setVisible(True)
             self.lineedit_new_port.setVisible(False)
 
-class AddWidgetDialog (QDialog):
+class EditPerspectiveDialog (QDialog):
     # TODO allow user to specify location for widget, floating/non floating, tabbed/non tabbed
     # TODO consider having widget settings panel on this window
     def __init__(self, state, parent=None):
-        super(AddWidgetDialog, self).__init__(parent)
+        super(EditPerspectiveDialog, self).__init__(parent)
         self.state = state
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle('Add a widget')
+        self.setWindowTitle('Edit Perspective')
         self.resize(700,200)
+
+        self.tabwidget = QTabWidget(self)
+        #self.tabwidget.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+        self.main_layout = QHBoxLayout()
+        self.main_layout.addWidget(self.tabwidget)
+        self.setLayout(self.main_layout)
+
+        self.tab_screens = QWidget()
+        self.tab_widgets = QWidget()
+        self.tab_toolbar = QWidget()
+
+        self.tabwidget.addTab(self.tab_screens, "Screens")
+        self.tabwidget.addTab(self.tab_widgets, "Widgets")
+        self.tabwidget.addTab(self.tab_toolbar, "Toolbar")
+
+        self.init_tab_screens()
+        self.init_tab_widgets()
+        self.init_tab_toolbar()
+
+    def init_tab_screens(self):
+
+        hbox = QHBoxLayout()
+
+        # Build the left panel
+        vbox_screen_list = QVBoxLayout()
+        vbox_screen_list.addWidget(QLabel("Screen list"))
+
+        self.list_screens = QListWidget()
+        btn_add_screen = QPushButton('+')
+        btn_delete_screen = QPushButton('x')
+
+        box_buttons = QHBoxLayout()
+        box_buttons.addWidget(btn_add_screen)
+        box_buttons.addWidget(btn_delete_screen)
+
+        vbox_screen_list.addWidget(self.list_screens)
+        vbox_screen_list.addLayout(box_buttons)
+        hbox.addLayout(vbox_screen_list)
+
+        # Build the right panel
+        #vbox_screen_settings = QVBoxLayout()
+        #hbox.addLayout(vbox_screen_settings)
+        #group = QGroupBox("Screen settings")
+        #vbox_screen_settings.addWidget(group)
+
+        layout_screen_settings = QFormLayout()
+        layout_screen_settings.addRow("Name:", QLineEdit())
+        layout_screen_settings.addRow("Tool Tip Text:", QLineEdit())
+        layout_screen_settings.addRow("Status Bar Text:", QLineEdit())
+        layout_screen_settings.addRow("Icon:", QLineEdit())
+        hbox.addLayout(layout_screen_settings)
+
+
+
+
+        self.tab_screens.setLayout(hbox)
+
+        # Connect controls
+        btn_add_screen.clicked.connect(self.on_button_add_screen)
+        btn_delete_screen.clicked.connect(self.on_button_delete_screen)
+
+        return
+
+    def init_tab_widgets(self):
 
         self.listWidget = QListWidget(self)
         widgets = self.list_widgets()
@@ -198,7 +262,11 @@ class AddWidgetDialog (QDialog):
         vbox.addWidget(self.listWidget)
         vbox.addLayout(hbox1)
 
-        self.setLayout(vbox)
+        self.tab_widgets.setLayout(vbox)
+
+    def init_tab_toolbar(self):
+
+        return
 
     def list_widgets(self):
         sys.path.append("ui/widgets/")
@@ -239,3 +307,11 @@ class AddWidgetDialog (QDialog):
 
     def on_button_cancel(self):
         self.close()
+
+    def on_button_add_screen(self):
+        # TODO on_button_add_screen
+        print("on_button_add_screen()")
+
+    def on_button_delete_screen(self):
+        # TODO on_button_delete_screen
+        print("on_button_delete_screen()")

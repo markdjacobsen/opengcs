@@ -1,4 +1,3 @@
-__author__ = 'markjacobsen'
 from GCSWidget import *
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
