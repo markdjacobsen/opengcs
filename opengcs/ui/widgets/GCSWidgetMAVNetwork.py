@@ -21,12 +21,11 @@ class MAVTreeWidgetItem (QTreeWidgetItem):
 
 class GCSWidgetMAVNetwork (GCSWidget):
 
-    widgetName = "MAV Network"
+    widget_name_plaintext = "MAV Network"
 
     def __init__(self, state, parent):
 
         super(GCSWidgetMAVNetwork, self).__init__(state, parent)
-        self.setObjectName("GCSWidgetMAVNetwork")
         self.setWindowTitle("MAV Network")
 
 
@@ -56,7 +55,7 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
         self.action_groups = QAction(QIcon('art/16x16/cc_list_num_icon&16.png'), '&Groups', self)
         self.action_groups.setStatusTip('View groups of MAVs')
-        self.action_groups.triggered.connect(self.on_button_groups)
+        self.action_groups.triggered.connect(self.on_button_swarms)
         self.action_groups.setCheckable(True)
 
         self.action_mavs = QAction(QIcon('art/16x16/cc_paper_airplane_icon&16.png'), '&MAVs', self)
@@ -124,7 +123,7 @@ class GCSWidgetMAVNetwork (GCSWidget):
         print("GCSWidgetMAVNetwork.on_button_connections()")
         self.refresh()
 
-    def on_button_groups(self):
+    def on_button_swarms(self):
         self.action_groups.setChecked(True)
         self.action_mavs.setChecked(False)
         self.action_connections.setChecked(False)
@@ -141,6 +140,25 @@ class GCSWidgetMAVNetwork (GCSWidget):
         if isinstance(item.data_object, MAV):
             self.state.set_focus(item.data_object)
 
+    def read_settings(self, settings):
+        # Read which view we're using: 0 = connections, 1 = mavs, 2 = swarms
+        if settings.value("treeview") == 0:
+            self.on_button_connections()
+        elif settings.value("treeview") == 1:
+            self.on_button_mavs()
+        else:
+            self.on_button_swarms()
+        return
+
+    def write_settings(self, settings):
+        # Write which view we're using: 0 = connections, 1 = mavs, 2 = swarms
+        if self.action_connections.isChecked():
+            settings.setValue("treeview", 0)
+        elif self.action_mavs.isChecked():
+            settings.setValue("treeview", 1)
+        else:
+            settings.setValue("treeview", 2)
+        return
 
 """
     def catch_network_changed(self):

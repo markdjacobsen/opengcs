@@ -7,18 +7,21 @@ from PyQt4.QtGui import *
 from PyQt4 import QtCore
 from pymavlink import mavutil
 
+# TODO window geometry is saved differently for each screen
+# TODO need to figure out how to remove toolbar
+# TODO toolbar needs to update after editing screens
+# TODO delete widgets from perspective files when closed
 
 class GCSWidgetHUD (GCSWidget):
 
-    widgetName = "HUD"
+    widget_name_plaintext = "HUD"
 
     def __init__(self, state, parent):
 
         super(GCSWidgetHUD, self).__init__(state, parent)
-        self.setObjectName("GCSWidgetHUD")
         self.set_datasource_allowable(WidgetDataSource.SINGLE)
         self.setWindowTitle("HUD")
-        self.setMinimumSize(300, 622)
+        self.setMinimumSize(300, 300)
         #self.setMaximumSize(400, 822)
 
         self.init_ui()

@@ -11,12 +11,11 @@ import fnmatch
 
 class GCSWidgetParameterList (GCSWidget):
 
-    widgetName = "ParameterList"
+    widget_name_plaintext = "ParameterList"
 
     def __init__(self, state, parent):
 
         super(GCSWidgetParameterList, self).__init__(state, parent)
-        self.setObjectName("GCSWidgetParameterList")
         self.setWindowTitle("Parameter List")
         self.setMinimumSize(150, 150)
         self.set_datasource_allowable(WidgetDataSource.SINGLE)

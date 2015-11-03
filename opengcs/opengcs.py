@@ -5,7 +5,7 @@ from ui.mainwindow import *
 from PyQt4 import QtGui
 import gcs_state
 import os
-
+import pyqtgraph as pg
 
 def main():
     # Create a root data object

@@ -8,12 +8,11 @@ import numpy as np
 
 class GCSWidgetPlot (GCSWidget):
 
-    widgetName = "Plot"
+    widget_name_plaintext = "Plot"
 
     def __init__(self, state, parent):
 
         super(GCSWidgetPlot, self).__init__(state, parent)
-        self.setObjectName("GCSWidgetPlot")
         self.set_datasource_allowable(WidgetDataSource.SINGLE|WidgetDataSource.SWARM)
         self.setMinimumSize(300, 300)
         self.init_ui()

@@ -13,6 +13,7 @@ All widgets should inherit from this. Child widgets must:
 """
 
 import sys
+import uuid
 from os import path
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -37,13 +38,19 @@ class GCSWidget (QDockWidget):
     # That window searches through the entire widgets directory, recursively searches
     # through all the GCSWidget-derived classes, and pulls out this name. Override it in
     # your class.
-    widgetName = "GCSWidget"
+    widget_name_plaintext = "GCSWidget"
 
-    def __init__(self, state, parent):
+    def __init__(self, state, parent, uuid=None):
 
         super(GCSWidget, self).__init__("GCSWidget", parent)
-        self.setObjectName("GCSWidget")
         self.state = state
+
+        # We give every widget a UUID, which is used to track the widget's settings in
+        # pespective .INI files
+        if uuid:
+            self.setObjectName(uuid)
+        else:
+            self.setObjectName(QUuid.createUuid().toString())
 
         # Signals other code can subscribe to
         self.on_datasource_changed = []
@@ -69,6 +76,8 @@ class GCSWidget (QDockWidget):
         asset_dir = 'art/hud'
         self.asset_path = path.join(app_dir, asset_dir)
 
+    def __str__(self):
+        return self.widget_name_plaintext
 
     def set_colors(self):
         """
@@ -224,3 +233,24 @@ class GCSWidget (QDockWidget):
         """
         return
 
+    def write_settings(self, settings):
+        """
+        Override to save widget-specific settings that will persist when the application is closed
+        and reloaded. The 'settings' parameter is a QSettings object that is created by the calling
+        code. A beginGroup() call will already have been made, so all you need to do is save your settings
+        like follows:
+
+        settings.setValue("widget_property_1", self.property_1)
+
+        """
+        return
+
+    def read_settings(self, settings):
+        """
+        Override to load widget-specific settings from persistent files. The 'settings' parameter is
+        a QSettings object that is created by the calling code. A beginGroup() call will arleady have
+        been made, so all you need to do is save your settings like follows:
+
+        self.property_1 = settings.value("property_1").toString()
+        """
+        return

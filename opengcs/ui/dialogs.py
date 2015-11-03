@@ -8,6 +8,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from util import serial_ports, import_package
 from gcs_state import *
+import mainwindow
 import sys
 import os
 import functools
@@ -239,9 +240,10 @@ class EditPerspectiveDialog (QDialog):
     def init_tab_widgets(self):
 
         self.listWidget = QListWidget(self)
-        widgets = self.list_widgets()
-        for w in widgets:
-            i = QListWidgetItem(w.widgetName)
+        self.widgets = self.list_widgets()
+        for w in self.widgets:
+            #i = QListWidgetItem(w.widgetName)
+            i = QListWidgetItem(w)
             self.listWidget.addItem(i)
 
         label = QLabel("Select a widget to add to the current screen")
@@ -293,11 +295,9 @@ class EditPerspectiveDialog (QDialog):
         for i in f:
             modulename = i[:-3]
             widgetModules.append(__import__(modulename))
-        print(widgetModules)
 
         subs = GCSWidget.__subclasses__()
         # DEBUG
-        print(subs)
         return subs
 
 
@@ -315,3 +315,213 @@ class EditPerspectiveDialog (QDialog):
     def on_button_delete_screen(self):
         # TODO on_button_delete_screen
         print("on_button_delete_screen()")
+
+class AddWidgetDialog (QDialog):
+
+    def __init__(self, state, parent):
+        super(AddWidgetDialog, self).__init__(parent)
+        self.state = state
+        self.widgets = parent.widget_library
+        self.init_ui()
+        self.widget_name = None
+        self.widget_position = None
+
+    def init_ui(self):
+        self.setWindowTitle('Add Widget')
+        self.resize(400,200)
+
+
+        self.listWidget = QListWidget(self)
+
+        for w in self.widgets:
+            i = QListWidgetItem(w.widget_name_plaintext)
+            self.listWidget.addItem(i)
+
+        label = QLabel("Select a widget to add to the current screen")
+
+        self.combo_position = QComboBox(self)
+        self.combo_position.addItem('Left')
+        self.combo_position.addItem('Right')
+        self.combo_position.addItem('Top')
+        self.combo_position.addItem('Bottom')
+        self.combo_position.addItem('Center')
+        self.combo_position.addItem('Floating')
+
+        button_cancel = QPushButton('&Cancel', self)
+        button_cancel.clicked.connect(self.on_button_cancel)
+
+        button_ok = QPushButton('&OK', self)
+        button_ok.clicked.connect(self.on_button_ok)
+
+        hbox1 = QHBoxLayout()
+        hbox1.addStretch(1)
+        hbox1.addWidget(button_cancel)
+        hbox1.addWidget(button_ok)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(label)
+        vbox.addWidget(self.listWidget)
+        vbox.addWidget(QLabel("Position for new widget:"))
+        vbox.addWidget(self.combo_position)
+        vbox.addLayout(hbox1)
+
+        self.setLayout(vbox)
+
+    def on_button_ok(self):
+        # TODO add widget upon closing dialog
+        self.widget_position = self.combo_position.currentText()
+
+        row = self.listWidget.currentRow()
+        self.widget = self.widgets[row]
+        self.result = True
+        self.close()
+
+    def on_button_cancel(self):
+        self.result = False
+        self.close()
+
+class EditScreensDialog (QDialog):
+
+    def __init__(self, state, screens, parent=None):
+        super(EditScreensDialog, self).__init__(parent)
+        self.state = state
+        self.screens = screens
+        self.init_ui()
+        self.selected_screen = None
+
+    def init_ui(self):
+        self.setWindowTitle('Edit Screens')
+        self.resize(600,200)
+
+        hbox = QHBoxLayout()
+
+        # Build the left panel
+        vbox_screen_list = QVBoxLayout()
+        vbox_screen_list.addWidget(QLabel("Screen list"))
+
+        self.list_screens = QListWidget()
+        self.list_screens.currentItemChanged.connect(self.on_button_item_changed)
+
+        btn_add_screen = QPushButton('+')
+        btn_add_screen.clicked.connect(self.on_button_add_screen)
+        btn_delete_screen = QPushButton('x')
+        btn_delete_screen.clicked.connect(self.on_button_delete_screen)
+
+        box_screen_buttons = QHBoxLayout()
+        box_screen_buttons.addWidget(btn_add_screen)
+        box_screen_buttons.addWidget(btn_delete_screen)
+
+        vbox_screen_list.addWidget(self.list_screens)
+        vbox_screen_list.addLayout(box_screen_buttons)
+        hbox.addLayout(vbox_screen_list)
+
+        self.line_name = QLineEdit()
+        self.line_tooltip = QLineEdit()
+        self.line_statustip = QLineEdit()
+        self.line_icon = QLineEdit()
+
+        self.line_name.textChanged.connect(self.on_text_changed)
+        self.line_tooltip.textChanged.connect(self.on_text_changed)
+        self.line_statustip.textChanged.connect(self.on_text_changed)
+        self.line_icon.textChanged.connect(self.on_text_changed)
+
+        layout_screen_settings = QFormLayout()
+        layout_screen_settings.addRow("Name:", self.line_name)
+        layout_screen_settings.addRow("Tool Tip Text:", self.line_tooltip)
+        layout_screen_settings.addRow("Status Bar Text:", self.line_statustip)
+        layout_screen_settings.addRow("Icon:", self.line_icon)
+        hbox.addLayout(layout_screen_settings)
+
+        button_cancel = QPushButton('&Cancel', self)
+        button_cancel.clicked.connect(self.on_button_cancel)
+
+        button_ok = QPushButton('&OK', self)
+        button_ok.clicked.connect(self.on_button_ok)
+
+        hbox_dialog_buttons = QHBoxLayout()
+        hbox_dialog_buttons.addStretch(1)
+        hbox_dialog_buttons.addWidget(button_cancel)
+        hbox_dialog_buttons.addWidget(button_ok)
+
+        vbox_main_layout = QVBoxLayout()
+        vbox_main_layout.addLayout(hbox)
+        vbox_main_layout.addLayout(hbox_dialog_buttons)
+
+        self.setLayout(vbox_main_layout)
+
+        self.refresh()
+
+    def refresh(self):
+
+        for screen in self.screens:
+            self.list_screens.addItem(screen.name)
+
+    def on_button_ok(self):
+        # TODO add widget upon closing dialog
+        self.result = True
+        self.close()
+
+    def on_button_cancel(self):
+        self.setResult(False)
+        self.result = False
+        self.close()
+
+    def on_button_add_screen(self):
+
+        new_screen = mainwindow.Screen()
+        self.screens.append(new_screen)
+        self.list_screens.addItem(new_screen.name)
+
+    def on_button_delete_screen(self):
+
+        self.selected_screen = self.screens[self.list_screens.currentRow()]
+        if isinstance(self.selected_screen, mainwindow.Screen):
+            if self.list_screens.count() == 1:
+                # TODO: messagebox about deleting last row
+                return
+            # TODO why is this not disappearing from the list?
+            self.list_screens.removeItemWidget(self.list_screens.currentItem())
+            self.screens.remove(self.selected_screen)
+
+    def on_button_item_changed(self):
+
+        self.selected_screen = self.screens[self.list_screens.currentRow()]
+
+        self.line_name.blockSignals(True)
+        self.line_icon.blockSignals(True)
+        self.line_tooltip.blockSignals(True)
+        self.line_statustip.blockSignals(True)
+
+        if isinstance(self.selected_screen, mainwindow.Screen):
+            self.line_name.setText(self.selected_screen.name)
+            self.line_icon.setText(self.selected_screen.iconfile)
+            self.line_tooltip.setText(self.selected_screen.tooltip)
+            self.line_statustip.setText(self.selected_screen.statustip)
+            self.line_name.setEnabled(True)
+            self.line_icon.setEnabled(True)
+            self.line_tooltip.setEnabled(True)
+            self.line_statustip.setEnabled(True)
+        else:
+            self.line_name.setText("")
+            self.line_icon.setText("")
+            self.line_tooltip.setText("")
+            self.line_statustip.setText("")
+            self.line_name.setText("")
+            self.line_name.setEnabled(False)
+            self.line_icon.setEnabled(False)
+            self.line_tooltip.setEnabled(False)
+            self.line_statustip.setEnabled(False)
+
+        self.line_name.blockSignals(False)
+        self.line_icon.blockSignals(False)
+        self.line_tooltip.blockSignals(False)
+        self.line_statustip.blockSignals(False)
+
+
+    def on_text_changed(self):
+
+        if isinstance(self.selected_screen, mainwindow.Screen):
+            self.selected_screen.name = self.line_name.text()
+            self.selected_screen.iconfile = self.line_icon.text()
+            self.selected_screen.tooltip = self.line_tooltip.text()
+            self.selected_screen.statustip = self.line_statustip.text()
