@@ -8,6 +8,7 @@ This is the root class for all opengcs widgets
 # TODO create a context menu
 # TODO context menu for connection: Disconnect
 # TODO context menu for MAV: Set Focus
+# TODO BUG toolbar not created when restoring from .INI file
 
 from GCSWidget import *
 from PyQt4.QtGui import *
@@ -120,7 +121,6 @@ class GCSWidgetMAVNetwork (GCSWidget):
         self.action_connections.setChecked(True)
         self.action_groups.setChecked(False)
         self.action_mavs.setChecked(False)
-        print("GCSWidgetMAVNetwork.on_button_connections()")
         self.refresh()
 
     def on_button_swarms(self):

@@ -3,6 +3,7 @@
 # TODO: update port status icon / alert to dead ports
 # TODO: disconnect needs to refresh the window, removing connection from open ports and adding it to available ports
 # TODO: need a hook that detects serial port changes while on the ConnctionsDialog
+# TODO: support screen ordering in screens dialog
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -321,6 +322,7 @@ class AddWidgetDialog (QDialog):
     def __init__(self, state, parent):
         super(AddWidgetDialog, self).__init__(parent)
         self.state = state
+        self.parent = parent
         self.widgets = parent.widget_library
         self.init_ui()
         self.widget_name = None
@@ -382,9 +384,10 @@ class AddWidgetDialog (QDialog):
 
 class EditScreensDialog (QDialog):
 
-    def __init__(self, state, screens, parent=None):
+    def __init__(self, state, screens, parent):
         super(EditScreensDialog, self).__init__(parent)
         self.state = state
+        self.parent = parent
         self.screens = screens
         self.init_ui()
         self.selected_screen = None
@@ -418,18 +421,20 @@ class EditScreensDialog (QDialog):
         self.line_name = QLineEdit()
         self.line_tooltip = QLineEdit()
         self.line_statustip = QLineEdit()
-        self.line_icon = QLineEdit()
+        self.btn_icon = QPushButton()
 
         self.line_name.textChanged.connect(self.on_text_changed)
         self.line_tooltip.textChanged.connect(self.on_text_changed)
         self.line_statustip.textChanged.connect(self.on_text_changed)
-        self.line_icon.textChanged.connect(self.on_text_changed)
+        self.line_name.editingFinished.connect(self.on_name_finished)
+        self.btn_icon.clicked.connect(self.on_button_icon)
+
 
         layout_screen_settings = QFormLayout()
         layout_screen_settings.addRow("Name:", self.line_name)
         layout_screen_settings.addRow("Tool Tip Text:", self.line_tooltip)
         layout_screen_settings.addRow("Status Bar Text:", self.line_statustip)
-        layout_screen_settings.addRow("Icon:", self.line_icon)
+        layout_screen_settings.addRow("Icon (new):", self.btn_icon)
         hbox.addLayout(layout_screen_settings)
 
         button_cancel = QPushButton('&Cancel', self)
@@ -461,6 +466,14 @@ class EditScreensDialog (QDialog):
         self.result = True
         self.close()
 
+    def on_button_icon(self):
+        # If the user clicks on the icon button, allow them to choose a new icon file
+        filename = str(QFileDialog.getOpenFileName(self, 'Select Icon File', os.getcwd(), 'Image Files (*.png *.jpg *.bmp)'))
+        self.screens[self.list_screens.currentRow()].iconfile = filename
+        icon = QIcon(self.selected_screen.iconfile)
+        self.btn_icon.setIconSize(QSize(64, 64))
+        self.btn_icon.setIcon(icon)
+
     def on_button_cancel(self):
         self.setResult(False)
         self.result = False
@@ -470,7 +483,9 @@ class EditScreensDialog (QDialog):
 
         new_screen = mainwindow.Screen()
         self.screens.append(new_screen)
-        self.list_screens.addItem(new_screen.name)
+        new_item = QListWidgetItem(new_screen.name)
+        self.list_screens.addItem(new_item)
+        self.list_screens.setCurrentItem(new_item)
 
     def on_button_delete_screen(self):
 
@@ -480,40 +495,46 @@ class EditScreensDialog (QDialog):
                 # TODO: messagebox about deleting last row
                 return
             # TODO why is this not disappearing from the list?
-            self.list_screens.removeItemWidget(self.list_screens.currentItem())
+            self.list_screens.takeItem(self.list_screens.currentIndex().row())
             self.screens.remove(self.selected_screen)
+            print(self.selected_screen.uuid)
+            self.parent.perspective.remove(self.selected_screen.uuid)
 
     def on_button_item_changed(self):
 
         self.selected_screen = self.screens[self.list_screens.currentRow()]
 
         self.line_name.blockSignals(True)
-        self.line_icon.blockSignals(True)
         self.line_tooltip.blockSignals(True)
         self.line_statustip.blockSignals(True)
 
         if isinstance(self.selected_screen, mainwindow.Screen):
             self.line_name.setText(self.selected_screen.name)
-            self.line_icon.setText(self.selected_screen.iconfile)
             self.line_tooltip.setText(self.selected_screen.tooltip)
             self.line_statustip.setText(self.selected_screen.statustip)
             self.line_name.setEnabled(True)
-            self.line_icon.setEnabled(True)
             self.line_tooltip.setEnabled(True)
             self.line_statustip.setEnabled(True)
+            self.btn_icon.setEnabled(True)
+
+            icon = QIcon(self.selected_screen.iconfile)
+            self.btn_icon.setIconSize(QSize(64, 64))
+            self.btn_icon.setIcon(icon)
+
         else:
             self.line_name.setText("")
             self.line_icon.setText("")
             self.line_tooltip.setText("")
             self.line_statustip.setText("")
             self.line_name.setText("")
+            self.btn_icon.setIcon(None)
             self.line_name.setEnabled(False)
             self.line_icon.setEnabled(False)
             self.line_tooltip.setEnabled(False)
             self.line_statustip.setEnabled(False)
+            self.btn_icon.setEnabled(False)
 
         self.line_name.blockSignals(False)
-        self.line_icon.blockSignals(False)
         self.line_tooltip.blockSignals(False)
         self.line_statustip.blockSignals(False)
 
@@ -522,6 +543,9 @@ class EditScreensDialog (QDialog):
 
         if isinstance(self.selected_screen, mainwindow.Screen):
             self.selected_screen.name = self.line_name.text()
-            self.selected_screen.iconfile = self.line_icon.text()
             self.selected_screen.tooltip = self.line_tooltip.text()
             self.selected_screen.statustip = self.line_statustip.text()
+
+    def on_name_finished(self):
+        item = self.list_screens.currentItem()
+        item.setText(self.line_name.text())

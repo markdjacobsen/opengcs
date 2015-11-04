@@ -13,7 +13,6 @@ All widgets should inherit from this. Child widgets must:
 """
 
 import sys
-import uuid
 from os import path
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -40,17 +39,12 @@ class GCSWidget (QDockWidget):
     # your class.
     widget_name_plaintext = "GCSWidget"
 
-    def __init__(self, state, parent, uuid=None):
+    def __init__(self, state, parent):
 
         super(GCSWidget, self).__init__("GCSWidget", parent)
         self.state = state
 
-        # We give every widget a UUID, which is used to track the widget's settings in
-        # pespective .INI files
-        if uuid:
-            self.setObjectName(uuid)
-        else:
-            self.setObjectName(QUuid.createUuid().toString())
+        self.setObjectName(QUuid.createUuid().toString())
 
         # Signals other code can subscribe to
         self.on_datasource_changed = []

@@ -1,5 +1,8 @@
 # TODO: figure out appropriate times to rebuild routing table
 # TODO: catch when widgets change their datasource
+# TODO: support screen ordering
+# TODO: fix disappearing toolbars for widgets
+
 
 from PyQt4.QtGui import *
 from dialogs import *
@@ -17,11 +20,20 @@ import functools
 import gettext
 
 class Screen:
-    def __init__(self, name="New Screen", iconfile='art/48x48/video-display-3.png', tooltip='Switch to screen', statustip='Switch to screen'):
+    """
+    This class contains information for a "Screen." The main window can have multiple "screens", which can be
+    selected from the toolbar
+    """
+    def __init__(self, name='New Screen', iconfile='art/48x48/video-display-3.png', tooltip='', statustip='', order=0, uuid=None):
+        if uuid:
+            self.uuid = uuid
+        else:
+            self.uuid = QUuid.createUuid().toString()
         self.name = name
         self.iconfile = iconfile
         self.tooltip = tooltip
         self.statustip = statustip
+        self.order = order
 
 
 class MainWindow(QMainWindow):
@@ -211,7 +223,7 @@ class MainWindow(QMainWindow):
     def on_action_settings(self):
         print("TODO on_action_settings")
         # TODO move FetchParameterHelp action to somewhere that makes sense
-        self.state.fetch_parameter_help()
+        #self.state.fetch_parameter_help()
 
     def on_action_connections(self):
         d = ConnectionsDialog(self.state)
@@ -249,7 +261,7 @@ class MainWindow(QMainWindow):
 
     def on_action_edit_screens(self):
 
-        d = EditScreensDialog(self.state, self.screens)
+        d = EditScreensDialog(self.state, self.screens, self)
         d.exec_()
         d.show()
 
@@ -408,29 +420,31 @@ class MainWindow(QMainWindow):
         except:
             self.screen_count = 1
 
+
+
         # Iterate over those screens, build a Screen object, and add to the screens list
         for i in range(0, self.screen_count):
 
             # Load the screen objects from the perspective .INI file
-            groupname_screen = "screen-" + str(i)
-            self.perspective.beginGroup(groupname_screen)
-            screenname = self.perspective.value('name').toPyObject()
-            iconfilename = self.perspective.value('iconfile').toPyObject()
-            tooltip = self.perspective.value('tooltip').toPyObject()
-            statustip = self.perspective.value('statustip').toPyObject()
-            self.perspective.endGroup()
-
-            # This initializes the scren with default values
-            if screenname is None:
-                screenname = "New Screen"
-            if iconfilename is None:
+            try:
+                uuid = self.perspective.value("mainwindow/screenuuids").toPyObject()[i]
+                groupname_screen = "screen-" + uuid
+                self.perspective.beginGroup(groupname_screen)
+                screenname = self.perspective.value('name').toPyObject()
+                iconfilename = self.perspective.value('iconfile').toPyObject()
+                tooltip = self.perspective.value('tooltip').toPyObject()
+                statustip = self.perspective.value('statustip').toPyObject()
+                order = self.perspective.value('order').toPyObject()
+                self.perspective.endGroup()
+            except:
+                uuid = QUuid.createUuid().toString()
+                screenname = 'New Screen'
                 iconfilename = 'art/48x48/video-display-3.png'
-            if tooltip is None:
                 tooltip = ""
-            if statustip is None:
                 statustip = ""
+                order = 0
 
-            screen = Screen(screenname, iconfilename, tooltip, statustip)
+            screen = Screen(screenname, iconfilename, tooltip, statustip, order, uuid)
             self.screens.append(screen)
 
     def write_window_settings(self):
@@ -438,22 +452,29 @@ class MainWindow(QMainWindow):
         Write window-level settings from the persperctive .INI file. This includes the window
         geometry and metadata about the screens contained within that window.
         """
+        screen_dictionary = {}
+        i = 0
+        for screen in self.screens:
+            screen_dictionary[i] = screen.uuid
+            i += 1
 
         # Write the number of screens
-        self.perspective.beginGroup("mainwindow")
-        self.perspective.setValue("screencount", str(self.screen_count))
-        self.perspective.setValue("geometry", self.saveGeometry())
+        self.perspective.beginGroup('mainwindow')
+        self.perspective.setValue('screencount', str(self.screen_count))
+        self.perspective.setValue('screenuuids', QVariant(screen_dictionary))
+        self.perspective.setValue('geometry', self.saveGeometry())
         self.perspective.endGroup()
 
         # Iterate over the screens and save screen data to the configuration file
         i = 0
         for screen in self.screens:
-            groupname_screen = "screen-" + str(i)
+            groupname_screen = 'screen-' + screen.uuid
             self.perspective.beginGroup(groupname_screen)
-            self.perspective.setValue("name", screen.name)
-            self.perspective.setValue("iconfile", screen.iconfile)
-            self.perspective.setValue("tooltip", screen.tooltip)
-            self.perspective.setValue("statustip", screen.statustip)
+            self.perspective.setValue('name', screen.name)
+            self.perspective.setValue('iconfile', screen.iconfile)
+            self.perspective.setValue('tooltip', screen.tooltip)
+            self.perspective.setValue('statustip', screen.statustip)
+            self.perspective.setValue('order', screen.order)
             self.perspective.endGroup()
             i += 1
 
@@ -464,7 +485,7 @@ class MainWindow(QMainWindow):
         layout.
         """
 
-        groupname_screen = "screen-" + str(self.active_screen)
+        groupname_screen = 'screen-' + self.screens[self.active_screen].uuid
 
         # Save which widgets are on the screen, and their object names
         widget_dict = {}
@@ -479,10 +500,9 @@ class MainWindow(QMainWindow):
 
         # Save the window geometry
         self.perspective.beginGroup(groupname_screen)
-        self.perspective.setValue("widgets", widget_variant)
-        self.perspective.setValue("widget-positions", widget_position_variant)
-        self.perspective.setValue("state", self.saveState())
-        self.perspective.endGroup()
+        self.perspective.setValue('widgets', widget_variant)
+        self.perspective.setValue('widget-positions', widget_position_variant)
+        self.perspective.setValue('state', self.saveState())
 
         # Save individual widget settings
         for w in self.children():
@@ -492,6 +512,9 @@ class MainWindow(QMainWindow):
                 w.write_settings(self.perspective)
                 self.perspective.endGroup() # End widget group
 
+        # End screen group
+        self.perspective.endGroup()
+
     def read_screen_settings(self):
         """
         Screen settings include the widget layout for a particular screen. The window state is
@@ -499,15 +522,15 @@ class MainWindow(QMainWindow):
         layout.
         """
 
-        groupname_screen = "screen-" + str(self.active_screen)
+        groupname_screen = 'screen-' + self.screens[self.active_screen].uuid
 
         # Load the window settings, which will restore all these widgets to
         # their appropriate geometries
         self.perspective.beginGroup(groupname_screen)
 
         # Read dictionaries contaiing widget class names and locations
-        widget_dict = self.perspective.value("widgets").toPyObject()
-        widget_position_dict = self.perspective.value("widget-positions").toPyObject()
+        widget_dict = self.perspective.value('widgets').toPyObject()
+        widget_position_dict = self.perspective.value('widget-positions').toPyObject()
 
         # Test for None, in case the .INI file is empty or doesn't exist
         # Then create the widgets listed in the .INI file
@@ -524,7 +547,16 @@ class MainWindow(QMainWindow):
                 for w in self.widget_library:
                     if widget_dict[key] == w.__name__:
                         newWidget = w(self.state, self)
+                        newWidget.setObjectName(key)
                         self.addDockWidget(widget_position_dict[key], newWidget)
+
+        # TODO Load widget settings here
+        for w in self.children():
+            if isinstance(w, GCSWidget):
+                groupname_widget = w.objectName()
+                self.perspective.beginGroup(groupname_widget)
+                w.read_settings(self.perspective)
+                self.perspective.endGroup() # End widget group
 
         # Now restore the window and state layout
         #self.restoreState(self.perspective.value("state").toByteArray())
@@ -533,6 +565,7 @@ class MainWindow(QMainWindow):
         # This is a bit hackish, but restoreState() also restores the toolbar states. Since
         # we want to keep control of drawing our own toolbars, I delete everything created by
         # restoreState()
+        # TODO this accidentally wipes out the widget toolbars as well
         toolbars = self.findChildren(QToolBar)
         for toolbar in toolbars:
             self.removeToolBar(toolbar)
@@ -550,15 +583,15 @@ class MainWindow(QMainWindow):
         # The main window needs to be updated if this widget changes datasources
         newWidget.on_datasource_changed.append(self.catch_widget_datasource_changed)
 
-        if position == "Center":
+        if position == 'Center':
             self.setCentralWidget(newWidget)
-        elif position == "Left":
+        elif position == 'Left':
             self.addDockWidget(Qt.LeftDockWidgetArea, newWidget)
-        elif position == "Right":
+        elif position == 'Right':
             self.addDockWidget(Qt.RightDockWidgetArea, newWidget)
-        elif position == "Top":
+        elif position == 'Top':
             self.addDockWidget(Qt.TopDockWidgetArea, newWidget)
-        elif position == "Button":
+        elif position == 'Bottom':
             self.addDockWidget(Qt.BottomDockWidgetArea, newWidget)
         else:
             self.addDockWidget(Qt.RightDockWidgetArea, newWidget)
@@ -576,7 +609,7 @@ class MainWindow(QMainWindow):
         a list of widget classes.
         """
 
-        sys.path.append("ui/widgets/")
+        sys.path.append('ui/widgets/')
 
         # Recursive file listing code from
         # http://stackoverflow.com/questions/3207219/how-to-list-all-files-of-a-directory-in-python
