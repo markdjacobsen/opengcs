@@ -177,6 +177,8 @@ class MainWindow(QMainWindow):
 
         self.toolbar.addWidget(self.label_focused_mav)
         self.toolbar.addWidget(self.combo_focused_mav)
+
+        self.populate_focus_combobox()
         #self.toolbar.addWidget(self.label_focused_component)
         #self.toolbar.addWidget(self.combo_focused_component)
 
@@ -293,10 +295,15 @@ class MainWindow(QMainWindow):
 
     def catch_network_changed(self):
 
+        self.populate_focus_combobox()
+
+    def populate_focus_combobox(self):
+
         # Update the combo boxes for focused object
         # TODO support sorting of focused MAV combo box. Sort keys?
         self.combo_focused_mav.blockSignals(True)
         self.combo_focused_mav.clear()
+        print("main_window.catch_network_changed")
         for mavkey in self.state.mav_network.mavs:
             mav = self.state.mav_network.mavs[mavkey]
             v = QVariant(mav)

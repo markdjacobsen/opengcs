@@ -23,6 +23,7 @@ class WidgetDataSource:
     These constants specify whether a widget is displaying a single aircraft, or a
     swarm of aircraft.
     """
+    NA = 0b00
     SINGLE = 0b10
     SWARM = 0b01
 
@@ -175,7 +176,8 @@ class GCSWidget (QDockWidget):
         Widgets inheriting from GCSWidget may override this to customize
         their own behavior.
         """
-        self.refresh()
+        if self._datasource_allowable != WidgetDataSource.NA:
+            self.refresh()
 
     def catch_network_changed(self):
         """

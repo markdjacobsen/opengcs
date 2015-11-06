@@ -4,11 +4,9 @@ This is the root class for all opengcs widgets
 # TODO change connection icon based on status (alive, dead, etc.) of connection
 # TODO change MAV icon based on type of vehicle and connection status
 # TODO add support for components
-# TODO double-clicking a MAV should change the focused MAV
 # TODO create a context menu
 # TODO context menu for connection: Disconnect
 # TODO context menu for MAV: Set Focus
-# TODO BUG toolbar not created when restoring from .INI file
 
 from GCSWidget import *
 from PyQt4.QtGui import *
@@ -28,6 +26,7 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
         super(GCSWidgetMAVNetwork, self).__init__(state, parent)
         self.setWindowTitle("MAV Network")
+        self.set_datasource_allowable(WidgetDataSource.NA)
 
 
         self.tree = QTreeWidget()
