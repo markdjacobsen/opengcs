@@ -193,6 +193,8 @@ class MainWindow(QMainWindow):
         Create the menu used by the main window
         """
         self.menubar = QMenuBar(self)
+        self.setMenuBar(self.menubar)
+        #self.menubar = self.menuBar()
         self.menu_file = self.menubar.addMenu('&File')
         self.menu_file.addAction(self.action_settings)
 
