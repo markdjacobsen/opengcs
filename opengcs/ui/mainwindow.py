@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
             self._routing[i] = []
         for w in self.children():
             if isinstance(w, GCSWidget):
-                if w._track_focused:
+                if w._track_focused and not w.isClosing:
                     if isinstance(self.state.focused_object, MAV) and w.get_datasource_allowed(WidgetDataSource.SINGLE):
                         self._routing[self.state.focused_object.system_id].append(w)
                     elif isinstance(self.state.focused_object, Swarm) and w.get_datasource_allowed(WidgetDataSource.SWARM):
@@ -540,14 +540,21 @@ class MainWindow(QMainWindow):
 
         groupname_screen = 'screen-' + self.screens[self.active_screen].uuid
 
+        # Clear out everything for this screen in the .INI file, which ensures we clear out
+        # any widgets that have been removed in the UI.
+        self.perspective.remove(groupname_screen + '/widgets')
+        self.perspective.remove(groupname_screen + '/widget-positions')
+        self.perspective.remove(groupname_screen + '/state')
+
         # Save which widgets are on the screen, and their object names
         widget_dict = {}
         widget_position_dict = {}
         for w in self.children():
             if isinstance(w, GCSWidget):
-                classname = QString(str(w.__class__.__name__))
-                widget_dict[QString(w.objectName())] = classname
-                widget_position_dict[QString(w.objectName())] = self.dockWidgetArea(w)
+                if not w.isClosing:
+                    classname = QString(str(w.__class__.__name__))
+                    widget_dict[QString(w.objectName())] = classname
+                    widget_position_dict[QString(w.objectName())] = self.dockWidgetArea(w)
         widget_variant = QVariant(widget_dict)
         widget_position_variant = QVariant(widget_position_dict)
 
@@ -690,4 +697,14 @@ class MainWindow(QMainWindow):
 
         # This generates a list of GCSWidget-derived classes
         self.widget_library = GCSWidget.__subclasses__()
+
+    def on_widget_closed(self):
+        print("on_widget_closed")
+        # Rebuild the mavlink routing dictionary so this widget can get updates
+        self.build_routing_dictionary()
+        print('a')
+        # Update the perpsective .INI file to include the new widget
+        self.write_screen_settings()
+        print('b')
+
 

@@ -44,8 +44,13 @@ class GCSWidget (QDockWidget):
 
         super(GCSWidget, self).__init__("GCSWidget", parent)
         self.state = state
+        self.parent = parent
 
         self.setObjectName(QUuid.createUuid().toString())
+
+        # This is a flag we set during a close event, so the main window knows to remove the
+        # widget from perspective files
+        self.isClosing = False
 
         # Signals other code can subscribe to
         self.on_datasource_changed = []
@@ -73,6 +78,11 @@ class GCSWidget (QDockWidget):
 
     def __str__(self):
         return self.widget_name_plaintext
+
+    def closeEvent(self, QCloseEvent):
+
+        self.isClosing = True
+        self.parent.on_widget_closed()
 
     def set_colors(self):
         """
@@ -125,11 +135,15 @@ class GCSWidget (QDockWidget):
         self.action_titlebar.setCheckable(True)
         self.action_titlebar.setChecked(True)
 
+        self.action_remove = QAction('&Remove widget', self)
+        self.action_remove.triggered.connect(self.on_action_remove)
+
     def show_menu(self):
         menu = QMenu()
         menu.addAction(self.action_floating)
         menu.addAction(self.action_tabbed)
         menu.addAction(self.action_titlebar)
+        menu.addAction(self.action_remove)
         selectedItem = menu.exec_(QCursor.pos())
 
     def on_action_floating(self):
@@ -160,6 +174,9 @@ class GCSWidget (QDockWidget):
             self.setTitleBarWidget(self.title_bar)
             #self.setWindowFlags(None)
         """
+
+    def on_action_remove(self):
+        self.close()
 
     def setShowTitlebar(self, value):
         if value:
