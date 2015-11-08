@@ -1,5 +1,8 @@
 # Created by https://www.gitignore.io/api/pycharm,linux,osx,windows,python
 
+# OpenGCS
+ui/perspectives/autosave.ini
+
 ### PyCharm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
 

@@ -3,19 +3,30 @@
 # TODO: support screen ordering
 # TODO: fix disappearing toolbars for widgets
 
+# Notes
+#
+# The main window includes a menu, toolbar, statusbar, and a widget area. OpenGCS supports multiple "screens"
+# filled with widgets, and screens can be selected from the toolbar. The mainwindow class handles switching
+# between screens and displaying the appropriate widgets.
+#
+# The mainwindow class also takes responsibility for saving/restoring settings between sessions, using the
+# QSettings architecture. "Window settings" include data about window geometry and the various screens.
+# "Screen settings" include the details of a particular screen, including the settings for each widget
+# on that screen.
+#
+# The main window also takes responsibility for forwarding mavlink packets from the MAV network to the
+# appropriate widgets. It maintains a routing dictionary indicating which widgets are listening for
+# which system ids.
 
 from PyQt4.QtGui import *
 from dialogs import *
 from ui.widgets.GCSWidget import *
-#from ui.widgets.GCSWidgetHUD import *
-#from ui.widgets.GCSWidgetMap import *
-#from ui.widgets.GCSWidgetMAVNetwork import *
-#from ui.widgets.GCSWidgetParameterList import *
-#from ui.widgets.GCSWidgetPlot import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from gcs_state import *
+import shutil
 import functools
+import os.path
 
 import gettext
 
@@ -42,7 +53,12 @@ class MainWindow(QMainWindow):
         self.state = state
         self.screens = []
         self.toolbar = None
+
+        # Load autosave.ini, or create a new one based on default.ini
+        if not os.path.isfile('ui/perspectives/autosave.ini'):
+            shutil.copyfile('ui/perspectives/default.ini', 'ui/perspectives/autosave.ini')
         self.perspective = QSettings('ui/perspectives/autosave.ini', QSettings.IniFormat)
+
         self.load_widget_library()
         self.initUI()
         self.show()
@@ -73,7 +89,7 @@ class MainWindow(QMainWindow):
         """
         Display the widgets for the active screen.
         """
-        # Erase the current screen
+        # Erase all widgets on screen
         for w in self.children():
             if isinstance(w,QDockWidget):
                 self.removeDockWidget(w)
@@ -194,7 +210,7 @@ class MainWindow(QMainWindow):
         """
         self.menubar = QMenuBar(self)
         self.setMenuBar(self.menubar)
-        
+
         self.menu_file = self.menubar.addMenu('&File')
         self.menu_file.addAction(self.action_settings)
 
@@ -225,15 +241,23 @@ class MainWindow(QMainWindow):
 
 
     def on_action_settings(self):
+        '''
+        Launch the Settings dialog
+        '''
         print("TODO on_action_settings")
-        # TODO move FetchParameterHelp action to somewhere that makes sense
-        #self.state.fetch_parameter_help()
 
     def on_action_connections(self):
+        '''
+        Launch the Connections dialog
+        '''
         d = ConnectionsDialog(self.state)
         d.exec_()
 
     def on_action_screen(self, screen_number):
+        '''
+        Switch to the specified screen number
+        '''
+
         # Save the settings for the old screen before loading the new screen
         self.write_screen_settings()
 
@@ -250,12 +274,32 @@ class MainWindow(QMainWindow):
                 action_screen.setChecked(False)
 
     def on_action_save_perspective(self):
-        # TODO on_action_save_perspective
-        print("TODO onActionSavePerspective")
+
+        # Ensure we have saved the most recent changes to autosave.ini
+        self.write_screen_settings()
+        self.write_window_settings()
+
+        # Get a destination filename
+        filename = QFileDialog.getSaveFileName(self, 'Save Perspective File', 'ui/perspectives/untitled.ini', 'Perspective Files (*.ini)')
+
+        # Copy the autosave.ini file to the new file
+        shutil.copyfile('ui/perspectives/autosave.ini', filename)
 
     def on_action_load_perspective(self):
-        # TODO on_action_load_perspective
-        print("TODO onActionLoadPerspective")
+
+        # Get a source filename
+        filename = QFileDialog.getOpenFileName(self, 'Open Perspective File', 'ui/perspectives', 'Perspective Files (*.ini)')
+        print(filename)
+
+        # Copy the file to overwrite autosave.ini
+        shutil.copyfile(filename, 'ui/perspectives/autosave.ini')
+
+        # Reload settings
+        self.perspective = QSettings('ui/perspectives/autosave.ini', QSettings.IniFormat)
+        self.active_screen = 0
+        self.read_window_settings()
+        self.display_active_screen()
+
 
     def on_action_edit_perspective(self):
 
