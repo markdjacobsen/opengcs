@@ -24,7 +24,7 @@ class Screen:
     This class contains information for a "Screen." The main window can have multiple "screens", which can be
     selected from the toolbar
     """
-    def __init__(self, name='New Screen', iconfile='art/48x48/video-display-3.png', tooltip='', statustip='', order=0, uuid=None):
+    def __init__(self, name='New Screen', iconfile='art/48x48/toolbar_screen.png', tooltip='', statustip='', order=0, uuid=None):
         if uuid:
             self.uuid = uuid
         else:
@@ -94,12 +94,12 @@ class MainWindow(QMainWindow):
         Create the PyQt actions used by the main window
         """
 
-        self.action_settings = QAction(QIcon('art/48x48/applications-system-4.png'), '&Settings', self)
+        self.action_settings = QAction(QIcon('art/48x48/toolbar_settings.png'), '&Settings', self)
         self.action_settings.setStatusTip('Open the settings menu')
         self.action_settings.setToolTip(('Settings'))
         self.action_settings.triggered.connect(self.on_action_settings)
 
-        self.action_connections = QAction(QIcon('art/48x48/network-globe.png'), '&Connections', self)
+        self.action_connections = QAction(QIcon('art/48x48/toolbar_connections.png'), '&Connections', self)
         self.action_connections.setStatusTip('Open connections dialog')
         self.action_connections.triggered.connect(self.on_action_connections)
 
@@ -446,7 +446,7 @@ class MainWindow(QMainWindow):
             except:
                 uuid = QUuid.createUuid().toString()
                 screenname = 'New Screen'
-                iconfilename = 'art/48x48/video-display-3.png'
+                iconfilename = 'art/48x48/toolbar_screen.png'
                 tooltip = ""
                 statustip = ""
                 order = 0

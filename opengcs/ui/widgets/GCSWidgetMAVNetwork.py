@@ -43,7 +43,6 @@ class GCSWidgetMAVNetwork (GCSWidget):
         self.setWidget(mylayout)
 
         # Toolbar
-        #self.toolbar = self.addToolBar('MainToolbar')
         self.toolbar = QToolBar()
         self.toolbar.setIconSize(QSize(16,16))
 

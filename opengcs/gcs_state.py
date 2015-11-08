@@ -32,10 +32,6 @@ class GCSState:
         # This object contains all application settings
         self.config = GCSConfig()
 
-        # The active perspective
-        self.load_perspective()
-
-
         # Flag for whether or not to print debug messages
         self.debug = self.config.settings['debug']
 
@@ -55,12 +51,6 @@ class GCSState:
         # _COMPONENT
         # self.mav_network.on_component_added.append(self.catch_component_added)
         # self.mav_network.on_component_removed.append(self.catch_component_removed)
-
-    def load_perspective(self):
-       print("TODO load_perspective")
-
-    def save_perspective(self,filename='ui/perspectives/default.pickle'):
-        print("TODO save_perspective")
 
     def set_focus(self, object, component_id=0):
         """
@@ -716,7 +706,6 @@ class GCSConfig:
         self.settings = {}
         self.perspective = {}
         self.load_settings()
-        self.load_perspective(self.settings['perspective'])
 
 
     def load_settings(self):
@@ -732,22 +721,6 @@ class GCSConfig:
         Save application configuration to an XML file
         """
         # TODO implement save opengcs settings
-        return
-
-    def load_perspective(self, filename):
-        """
-        Load a perspective from an XML file
-        """
-        with open(filename) as fd:
-            self.perspective = xmltodict.parse(fd.read())['perspective']
-
-        return
-
-    def save_perspective(self, filename):
-        """
-        Save this perspective to an XML file
-        """
-        # TODO implement save perspective
         return
 
 def dot_opengcs(name):
