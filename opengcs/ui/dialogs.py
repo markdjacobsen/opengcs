@@ -13,6 +13,7 @@ import mainwindow
 import sys
 import os
 import functools
+from pymavlink import mavutil
 
 from ui.widgets.GCSWidget import GCSWidget
 

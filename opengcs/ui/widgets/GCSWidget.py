@@ -193,6 +193,15 @@ class GCSWidget (QDockWidget):
         Widgets inheriting from GCSWidget may override this to customize
         their own behavior.
         """
+
+        # If the widget focus is locked to a specific MAV or Swarm, then don't update the datasource
+        if not self._track_focused:
+            return
+
+        if isinstance(object, MAV) and (self._datasource_allowable & WidgetDataSource.SINGLE):
+            self._datasource = object
+        if isinstance(object, Swarm) and (self._datasource_allowable & WidgetDataSource.SWARM):
+            self._datasource = object
         if self._datasource_allowable != WidgetDataSource.NA:
             self.refresh()
 

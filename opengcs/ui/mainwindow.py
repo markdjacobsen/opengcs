@@ -27,6 +27,7 @@ from gcs_state import *
 import shutil
 import functools
 import os.path
+from opengcs import *
 
 import gettext
 
@@ -35,7 +36,7 @@ class Screen:
     This class contains information for a "Screen." The main window can have multiple "screens", which can be
     selected from the toolbar
     """
-    def __init__(self, name='New Screen', iconfile='art/48x48/toolbar_screen.png', tooltip='', statustip='', order=0, uuid=None):
+    def __init__(self, name='New Screen', iconfile=gcsfile('art/48x48/toolbar_screen.png'), tooltip='', statustip='', order=0, uuid=None):
         if uuid:
             self.uuid = uuid
         else:
@@ -55,9 +56,9 @@ class MainWindow(QMainWindow):
         self.toolbar = None
 
         # Load autosave.ini, or create a new one based on default.ini
-        if not os.path.isfile('ui/perspectives/autosave.ini'):
-            shutil.copyfile('ui/perspectives/default.ini', 'ui/perspectives/autosave.ini')
-        self.perspective = QSettings('ui/perspectives/autosave.ini', QSettings.IniFormat)
+        if not os.path.isfile(gcsfile('ui/perspectives/autosave.ini')):
+            shutil.copyfile(gcsfile('ui/perspectives/default.ini'), gcsfile('ui/perspectives/autosave.ini'))
+        self.perspective = QSettings(gcsfile('ui/perspectives/autosave.ini'), QSettings.IniFormat)
 
         self.load_widget_library()
         self.initUI()
@@ -75,7 +76,7 @@ class MainWindow(QMainWindow):
         """
         self.setGeometry(300, 300, 1000, 500)
         self.setWindowTitle(self.state.config.settings['windowtitle'])
-        self.setWindowIcon(QIcon(self.state.config.settings['windowicon']))
+        self.setWindowIcon(QIcon(gcsfile(self.state.config.settings['windowicon'])))
         self.active_screen = 0
         self.refresh()
 
@@ -110,7 +111,7 @@ class MainWindow(QMainWindow):
         Create the PyQt actions used by the main window
         """
 
-        self.action_settings = QAction(QIcon('art/48x48/toolbar_settings.png'), '&Settings', self)
+        self.action_settings = QAction(QIcon(gcsfile('art/48x48/toolbar_settings.png')), '&Settings', self)
         self.action_settings.setStatusTip('Open the settings menu')
         self.action_settings.setToolTip(('Settings'))
         self.action_settings.triggered.connect(self.on_action_settings)
@@ -151,7 +152,7 @@ class MainWindow(QMainWindow):
         self.actions_screens = []
         screen_number = 0
         for screen in self.screens:
-            action = QAction(QIcon(screen.iconfile), screen.name, self)
+            action = QAction(QIcon(gcsfile(screen.iconfile)), screen.name, self)
             action.setToolTip(screen.tooltip)
             action.setStatusTip(screen.statustip)
             action.triggered.connect(functools.partial(self.on_action_screen,screen_number))
@@ -173,6 +174,7 @@ class MainWindow(QMainWindow):
         self.toolbar = self.addToolBar('MainToolBar')
         self.toolbar.setObjectName("MainToolBar")
 
+        self.toolbar.addAction(self.action_add_widget)
         self.toolbar.addAction(self.action_settings)
         self.toolbar.addAction(self.action_connections)
 
@@ -208,6 +210,7 @@ class MainWindow(QMainWindow):
         """
         Create the menu used by the main window
         """
+        print('create_menu')
         self.menubar = QMenuBar(self)
         self.setMenuBar(self.menubar)
 
@@ -610,7 +613,6 @@ class MainWindow(QMainWindow):
                         newWidget.setObjectName(key)
                         self.addDockWidget(widget_position_dict[key], newWidget)
 
-        # TODO Load widget settings here
         for w in self.children():
             if isinstance(w, GCSWidget):
                 groupname_widget = w.objectName()
@@ -626,9 +628,10 @@ class MainWindow(QMainWindow):
         # we want to keep control of drawing our own toolbars, I delete everything created by
         # restoreState()
         # TODO this accidentally wipes out the widget toolbars as well
-        toolbars = self.findChildren(QToolBar)
-        for toolbar in toolbars:
-            self.removeToolBar(toolbar)
+        #toolbars = self.findChildren(QToolBar)
+        #for toolbar in toolbars:
+        #    self.removeToolBar(toolbar)
+        self.create_menu()
 
     def add_gcs_widget(self, classobject, position):
         """

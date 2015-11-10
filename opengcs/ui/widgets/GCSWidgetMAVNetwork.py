@@ -35,9 +35,8 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
 
         vbox = QVBoxLayout()
-
+        vbox.setContentsMargins(0, 0, 0, 0)
         vbox.addWidget(self.tree)
-
         mylayout = QWidget()
         mylayout.setLayout(vbox)
         self.setWidget(mylayout)
@@ -101,7 +100,8 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
         elif self.action_groups.isChecked():
             # TODO implement refresh() for group view
-            swarms = self.state.config.perspective['swarm']
+            # TODO implement swarms
+            swarms = []
             for swarm in swarms:
                 swarm_item = MAVTreeWidgetItem(self.tree, [swarm['name']], swarm)
 

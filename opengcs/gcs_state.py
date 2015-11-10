@@ -370,6 +370,16 @@ class MAV:
         self.fetch_one = 0          # ???
         self.param_fetched = False
 
+        # There may be a better way to do this, but this is my solution to get a list of
+        # mavlink messages this mav uses.
+        # TODO This currently reads a global mavlink dialect variable from mavutil, but
+        # it is possible that each device could speak a different dialect.
+        self.msg_types = []
+        mavlink_map = mavutil.mavlink.mavlink_map
+        for key in mavlink_map.keys():
+            self.msg_types.append(mavlink_map[key].name)
+        self.msg_types.sort()
+
         # The class exposes a number of events that other code can subscribe to
         self.on_heartbeat = []
         self.on_param_received = []

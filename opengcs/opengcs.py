@@ -7,7 +7,11 @@ import gcs_state
 import os
 import pyqtgraph as pg
 
+def gcsfile(filename):
+    return gcsdir + '/' + filename
+
 def main():
+
     # Create a root data object
     state = gcs_state.GCSState()
     state.path = os.path.dirname(__file__)
@@ -22,5 +26,8 @@ def main():
     sys.exit(app.exec_())
 
 
+
+__version__ = '0.0.1'
+gcsdir = os.path.dirname(__file__)
 if __name__ == '__main__':
     main()
