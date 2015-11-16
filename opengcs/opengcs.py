@@ -7,6 +7,8 @@ import gcs_state
 import os
 import pyqtgraph as pg
 
+global state
+
 def gcsfile(filename):
     return gcsdir + '/' + filename
 

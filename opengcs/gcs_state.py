@@ -1,7 +1,8 @@
 # _COMPONENT tag is used to mark any place we need to modify code to add support for multiple components
 # TODO catch SerialException when reading serial port
 # TODO connecting to a 2nd MAV causes the focus to change to the new mav, when it shouldn't
-#
+# TODO Swarm names/details should be loaded from a config file. Right now a few swarms are hard-coded.
+
 from pymavlink import mavutil
 import threading
 import xmltodict
@@ -15,7 +16,7 @@ from PyQt4.QtCore import *
 SINGLE = 0b01
 SWARM = 0b10
 
-
+global state
 
 class GCSState:
 
@@ -31,6 +32,11 @@ class GCSState:
 
         # This object contains all application settings
         self.config = GCSConfig()
+
+        # Load the MAV profile library
+        self.mav_templates = []
+        self.mav_profiles = {}
+        self.load_mav_library()
 
         # Flag for whether or not to print debug messages
         self.debug = self.config.settings['debug']
@@ -51,6 +57,24 @@ class GCSState:
         # _COMPONENT
         # self.mav_network.on_component_added.append(self.catch_component_added)
         # self.mav_network.on_component_removed.append(self.catch_component_removed)
+
+    def load_mav_library(self):
+
+        # TODO: I am temporarily hard-coding data, rather than loading it frm a file
+        multicopter_template = MAVTemplate('Generic Multicopter')
+        fixedwing_template = MAVTemplate('Generic Fixed-Wing')
+        fx61_template = MAVTemplate('Generic Fixed-Wing')
+        self.mav_templates.append(multicopter_template)
+        self.mav_templates.append(fixedwing_template)
+        self.mav_templates.append(fx61_template)
+
+        for i in range(0,250):
+            self.mav_profiles[i] = MAVProfile('Generic Aircraft', '0xFFFFFF', fixedwing_template)
+
+        self.mav_profiles[251] = MAVProfile('Red FX-61', '0xFF0000', fx61_template)
+        self.mav_profiles[252] = MAVProfile('Blue FX-61', '0x0000FF', fx61_template)
+        self.mav_profiles[253] = MAVProfile('Green FX-61', '0x00FF00', fx61_template)
+        self.mav_profiles[254] = MAVProfile('Purple FX-61', '0xFF00FF', fx61_template)
 
     def set_focus(self, object, component_id=0):
         """
@@ -100,6 +124,16 @@ class GCSState:
         except Exception as e:
             print(e)
 
+class MAVTemplate:
+    def __init__(self, name="New Template"):
+        self.name = name
+
+class MAVProfile:
+    def __init__(self, name, color, template):
+        self.name = name
+        self.color = '0xFFFFFF'
+        self.uuid = QUuid.createUuid().toString()
+        self.template = template
 
 class MAVNetwork:
     """
@@ -117,7 +151,9 @@ class MAVNetwork:
         self.mavs = {}
 
         # Create a list with one swarm, representing all mavs
-        self.swarms = [Swarm("All MAVs")]
+        self.swarms = [Swarm("All MAVs", color = '#000000')]
+        self.swarms.append(Swarm("Swarm Alpha", color = '#000080'))
+        self.swarms.append(Swarm("Swarm Beta", color = '#800000'))
 
         # These are signals that other code can subscribe to
         self.on_mav_added = []
@@ -145,8 +181,10 @@ class MAVNetwork:
         if mav not in self.mavs:
             # Add this mav to the dictionary of all mavs
             self.mavs[mav.system_id] = mav
+
             # Add this mav to swarm 0, which always represents all mavs
             self.swarms[0].add_mav(mav)
+
 
             for signal in self.on_mav_added:
                 signal(mav)
@@ -236,9 +274,9 @@ class MAVNetwork:
             signal(m)
 
 class Swarm:
-    def __init__(self, name="New Swarm", mavs=[], color = '#000000'):
+    def __init__(self, name="New Swarm", color = '#000000'):
         self.name = name
-        self.mavs = mavs
+        self.mavs = []
         self.color = color
 
         # Signals
@@ -360,7 +398,9 @@ class MAV:
         self.system_id = system_id
         self.conn = conn
         self.master = conn.master
-        self.name = "MAV"
+
+        self.name = state.mav_library.mav_profiles[system_id].name
+        #self.name = "MAV"
         self.color = '#FFFFFF'
 
         # Properties related to parameters

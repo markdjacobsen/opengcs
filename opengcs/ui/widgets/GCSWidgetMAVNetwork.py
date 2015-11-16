@@ -14,9 +14,13 @@ from PyQt4.QtCore import *
 from gcs_state import *
 
 class MAVTreeWidgetItem (QTreeWidgetItem):
-    def __init__(self, tree, text, data_object):
+    def __init__(self, tree, text, data_object, color='#FFFFFF'):
         super(MAVTreeWidgetItem, self).__init__(tree, text)
         self.data_object = data_object
+        color = QColor(color)
+        pixmap = QPixmap(16, 16)
+        pixmap.fill(color)
+        self.setIcon(0, QIcon(pixmap))
 
 class GCSWidgetMAVNetwork (GCSWidget):
 
@@ -45,18 +49,18 @@ class GCSWidgetMAVNetwork (GCSWidget):
         self.toolbar = QToolBar()
         self.toolbar.setIconSize(QSize(16,16))
 
-        self.action_connections = QAction(QIcon('art/16x16/cc_connect_icon&16.png'), '&Connections', self)
+        self.action_connections = QAction(QIcon('art/16x16/tree_btn_connections.png'), '&Connections', self)
         self.action_connections.setStatusTip('View all network connections')
         self.action_connections.triggered.connect(self.on_button_connections)
         self.action_connections.setCheckable(True)
         self.action_connections.setChecked(True)
 
-        self.action_groups = QAction(QIcon('art/16x16/cc_list_num_icon&16.png'), '&Groups', self)
-        self.action_groups.setStatusTip('View groups of MAVs')
-        self.action_groups.triggered.connect(self.on_button_swarms)
-        self.action_groups.setCheckable(True)
+        self.action_swarms = QAction(QIcon('art/16x16/tree_btn_swarms.png'), '&Swarms', self)
+        self.action_swarms.setStatusTip('View groups of MAVs')
+        self.action_swarms.triggered.connect(self.on_button_swarms)
+        self.action_swarms.setCheckable(True)
 
-        self.action_mavs = QAction(QIcon('art/16x16/cc_paper_airplane_icon&16.png'), '&MAVs', self)
+        self.action_mavs = QAction(QIcon('art/16x16/tree_btn_mavs.png'), '&MAVs', self)
         self.action_mavs.setStatusTip('View individual MAVs')
         self.action_mavs.triggered.connect(self.on_button_mavs)
         self.action_mavs.setCheckable(True)
@@ -64,7 +68,7 @@ class GCSWidgetMAVNetwork (GCSWidget):
 
         self.toolbar.addAction(self.action_connections)
         self.toolbar.addAction(self.action_mavs)
-        self.toolbar.addAction(self.action_groups)
+        self.toolbar.addAction(self.action_swarms)
 
         vbox.setMenuBar(self.toolbar)
 
@@ -83,52 +87,49 @@ class GCSWidgetMAVNetwork (GCSWidget):
         if self.action_connections.isChecked():
             for connection in self.state.mav_network.connections:
                 conn_item = MAVTreeWidgetItem(self.tree, [connection.port], connection)
-                conn_item.setIcon(0,QIcon('art/16x16/user-available.png'))
+                conn_item.setIcon(0,QIcon('art/16x16/status_green.png'))
                 self.tree.addTopLevelItem(conn_item)
 
                 for mav in self.state.mav_network.get_mavs_on_connection(connection):
-                    mav_item = MAVTreeWidgetItem(conn_item, [mav.name], mav)
-                    mav_item.setIcon(0,QIcon('art/16x16/arrow-right-2.png'))
+                    mav_item = MAVTreeWidgetItem(conn_item, [mav.get_name()], mav)
+                    mav_item.setIcon(0,QIcon('art/16x16/tree_mav.png'))
 
         elif self.action_mavs.isChecked():
             for mavkey in self.state.mav_network.mavs:
                 mav = self.state.mav_network.mavs[mavkey]
 
                 mav_item = MAVTreeWidgetItem(self.tree, [mav.get_name()], mav)
-                mav_item.setIcon(0,QIcon('art/16x16/arrow-right-2.png'))
+                mav_item.setIcon(0,QIcon('art/16x16/tree_mav.png'))
                 self.tree.addTopLevelItem(mav_item)
 
-        elif self.action_groups.isChecked():
+        elif self.action_swarms.isChecked():
+
             # TODO implement refresh() for group view
-            # TODO implement swarms
-            swarms = []
-            for swarm in swarms:
-                swarm_item = MAVTreeWidgetItem(self.tree, [swarm['name']], swarm)
-
-                #color = self.palette().pop()
-                #color = self.palette()
-                color = QColor(swarm['color'])
-                pixmap = QPixmap(16, 16)
-                pixmap.fill(color)
-                swarm_item.setIcon(0, QIcon(pixmap))
-
+            for swarm in self.state.mav_network.swarms:
+                swarm_item = MAVTreeWidgetItem(self.tree, [swarm.name], swarm, swarm.color)
                 self.tree.addTopLevelItem(swarm_item)
+                for mav in swarm.mavs:
+                    mav_item = MAVTreeWidgetItem(swarm_item, [mav.get_name()], mav.color)
+
+
+
+
 
     def on_button_connections(self):
         # TODO implement on_button_connections
         self.action_connections.setChecked(True)
-        self.action_groups.setChecked(False)
+        self.action_swarms.setChecked(False)
         self.action_mavs.setChecked(False)
         self.refresh()
 
     def on_button_swarms(self):
-        self.action_groups.setChecked(True)
+        self.action_swarms.setChecked(True)
         self.action_mavs.setChecked(False)
         self.action_connections.setChecked(False)
         self.refresh()
 
     def on_button_mavs(self):
-        self.action_groups.setChecked(False)
+        self.action_swarms.setChecked(False)
         self.action_connections.setChecked(False)
         self.action_mavs.setChecked(True)
         self.refresh()
