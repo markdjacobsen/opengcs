@@ -17,7 +17,9 @@ class HorizonWidget (QWidget):
         """
         Initialize the user interface for the main window
         """
-        self.setMinimumSize(100, 100)
+        self.setMinimumSize(75, 75)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setFixedSize(75, 75)
         self.img = QPixmap(gcsfile('art/hud/horizon_back.png'))
 
     def paintEvent(self, QPaintEvent):

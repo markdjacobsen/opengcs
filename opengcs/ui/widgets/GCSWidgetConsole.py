@@ -1,3 +1,7 @@
+# TODO resizing shouldn't force a redrawing of the entire interface
+# TODO Allow horizontal expansion
+# TODO No vertical stretching between panes
+# TODO Display panes beginnng at (0,0)
 
 from GCSWidget import *
 from PyQt4.QtGui import *
@@ -51,9 +55,27 @@ class GCSWidgetConsole (GCSWidget):
 
         print("GCSWidgetConsole.refresh()")
 
-        # Remove old panes
-        for i in range(0,self.vbox.count()):
-            self.vbox.removeItem(self.vbox.itemAt(0))
+        # Remove old panes from the layout
+        #for i in range(0,self.vbox.count()):
+        #    item = self.vbox.itemAt(0)
+        #    item.hide()
+        #    self.vbox.removeAt
+        #    self.vbox.removeItem(item)
+        #    item = None
+
+        for i in range(0, self.vbox.count()):
+            widget = self.vbox.takeAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+                widget.hide()
+
+        # Remove and delete them from the widget
+        #for child in self.children():
+        #    if isinstance(child, GCSWidgetConsolePane):
+        #        print("Removing item " + str(child))
+        #        child.deleteLater()
+        #        #child.setParent(None)
+        #        child = None
 
         mavlist = []
         self.routing_dictionary = {}
@@ -63,9 +85,10 @@ class GCSWidgetConsole (GCSWidget):
         elif isinstance(self._datasource, Swarm):
             for mav in self._datasource.mavs:
                 mavlist.append(mav)
-        print(mavlist)
+
         for mav in mavlist:
-            pane = GCSWidgetConsolePane(self, self.state, mav)
+            print('Adding MAV')
+            pane = GCSWidgetConsolePane(self.mylayout, self.state, mav)
             self.vbox.addWidget(pane)
             self.routing_dictionary[mav.system_id] = pane
 
@@ -89,7 +112,7 @@ class GCSWidgetConsole (GCSWidget):
 class GCSWidgetConsolePane(QFrame):
 
     def __init__(self, parent, state, mav):
-
+        print("GCSWidgetConsolePane.init()")
         super(GCSWidgetConsolePane, self).__init__(parent)
         self.state = state
         self.mav = mav
@@ -104,21 +127,26 @@ class GCSWidgetConsolePane(QFrame):
     def init_ui(self):
 
         self.setFrameStyle(QFrame.Panel|QFrame.Raised)
-        vbox = QVBoxLayout(self)
-        vbox.setContentsMargins(0, 0, 0, 0)
+        self.setMinimumSize(400, 140)
+        self.setFixedSize(400,140)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        vbox_master = QVBoxLayout(self)
+        vbox_master.setContentsMargins(0, 0, 0, 0)
         mylayout = QWidget(self)
-        mylayout.setLayout(vbox)
+        mylayout.setLayout(vbox_master)
+
 
         self.horizon = HorizonWidget(self)
-        #self.horizon.resize(100,100)
-        self.horizon.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.horizon.setGeometry(5,5,100,100)
+        self.horizon.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
         f = QFont( "Arial", 14, QFont.Bold)
-        self.label_name = QLabel(str(self.mav.system_id), self)
+        self.label_name = QLabel(self.mav.get_name(), self)
         self.label_name.setFont(f)
+
         self.label_altitude = QLabel('', self)
-        self.label_airspeed = QLabel('', self)
-        self.label_gndspeed = QLabel('', self)
+        self.label_airspeed = QLabel('A', self)
+        self.label_gndspeed = QLabel('G', self)
         self.label_heading = QLabel('', self)
         self.label_throttle = QLabel('', self)
         self.label_climb = QLabel('', self)
@@ -130,28 +158,44 @@ class GCSWidgetConsolePane(QFrame):
         self.label_wind = QLabel('Wind ', self)
         self.label_mode = QLabel('Mode', self)
 
-        #self.scene = QGraphicsScene()
-        #self.hud = QGraphicsView(self.scene)
+        self.horizon.setGeometry(50, 80, 75, 75)
 
+        hbox_columns = QHBoxLayout()
+        vbox_master.addWidget(self.label_name)
+        vbox_master.addLayout(hbox_columns)
+        vbox_primary_data = QVBoxLayout()
+        vbox_supplementary_data = QVBoxLayout()
+        hbox_columns.addLayout(vbox_primary_data)
+        hbox_columns.addWidget(self.horizon)
+        hbox_columns.addLayout(vbox_supplementary_data)
 
-        vbox.addWidget(self.label_name)
-        vbox.addWidget(self.horizon)
-        #vbox.addWidget(self.hud.viewport())
-        vbox.addWidget(self.label_altitude)
-        vbox.addWidget(self.label_airspeed)
-        vbox.addWidget(self.label_gndspeed)
-        vbox.addWidget(self.label_heading)
-        vbox.addWidget(self.label_throttle)
-        vbox.addWidget(self.label_climb)
-        vbox.addWidget(self.label_wind)
-        vbox.addWidget(self.label_roll)
-        vbox.addWidget(self.label_pitch)
-        vbox.addWidget(self.label_WP)
-        vbox.addWidget(self.label_WPDist)
-        vbox.addWidget(self.label_WPBearing)
-        vbox.addWidget(self.label_mode)
+        vbox_primary_data.addWidget(self.label_altitude)
+        vbox_primary_data.addWidget(self.label_airspeed)
+        vbox_primary_data.addWidget(self.label_gndspeed)
+        vbox_primary_data.addWidget(self.label_heading)
 
-        self.setLayout(vbox)
+        hbox_supp_row1 = QHBoxLayout()
+        hbox_supp_row2 = QHBoxLayout()
+        vbox_supplementary_data.addLayout(hbox_supp_row1)
+        vbox_supplementary_data.addLayout(hbox_supp_row2)
+
+        #vbox_master.addWidget(self.horizon)
+        #vbox_master.addWidget(self.label_altitude)
+        #vbox_master.addWidget(self.label_airspeed)
+        #vbox_master.addWidget(self.label_gndspeed)
+
+        hbox_supp_row1.addWidget(self.label_mode)
+        hbox_supp_row1.addWidget(self.label_throttle)
+        hbox_supp_row1.addWidget(self.label_climb)
+        hbox_supp_row1.addWidget(self.label_roll)
+        hbox_supp_row1.addWidget(self.label_pitch)
+
+        hbox_supp_row2.addWidget(self.label_WP)
+        hbox_supp_row2.addWidget(self.label_WPBearing)
+        hbox_supp_row2.addWidget(self.label_WPDist)
+        hbox_supp_row2.addWidget(self.label_wind)
+
+        self.setLayout(vbox_master)
 
     def process_messages(self, m):
 
