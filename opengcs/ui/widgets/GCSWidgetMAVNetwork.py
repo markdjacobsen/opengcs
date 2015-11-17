@@ -109,11 +109,7 @@ class GCSWidgetMAVNetwork (GCSWidget):
                 swarm_item = MAVTreeWidgetItem(self.tree, [swarm.name], swarm, swarm.color)
                 self.tree.addTopLevelItem(swarm_item)
                 for mav in swarm.mavs:
-                    mav_item = MAVTreeWidgetItem(swarm_item, [mav.get_name()], mav.color)
-
-
-
-
+                    mav_item = MAVTreeWidgetItem(swarm_item, [mav.get_name()], mav, mav.color)
 
     def on_button_connections(self):
         # TODO implement on_button_connections
@@ -135,8 +131,8 @@ class GCSWidgetMAVNetwork (GCSWidget):
         self.refresh()
 
     def on_item_double_click(self, item, col):
-        print(item.data_object)
-        if isinstance(item.data_object, MAV):
+
+        if isinstance(item.data_object, MAV) or isinstance(item.data_object, Swarm):
             self.state.set_focus(item.data_object)
 
     def read_settings(self, settings):

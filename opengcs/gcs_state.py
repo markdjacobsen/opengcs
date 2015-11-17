@@ -399,8 +399,8 @@ class MAV:
         self.conn = conn
         self.master = conn.master
 
-        self.name = state.mav_library.mav_profiles[system_id].name
-        #self.name = "MAV"
+        #self.name = state.mav_library.mav_profiles[system_id].name
+        self.name = "MAV"
         self.color = '#FFFFFF'
 
         # Properties related to parameters

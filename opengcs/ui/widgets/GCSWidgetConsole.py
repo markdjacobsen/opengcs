@@ -3,7 +3,9 @@ from GCSWidget import *
 from PyQt4.QtGui import *
 from opengcs import *
 from gcs_state import *
+from pymavlink import mavutil
 import math
+from HorizonWidget import *
 
 class GCSWidgetConsole (GCSWidget):
 
@@ -47,7 +49,7 @@ class GCSWidgetConsole (GCSWidget):
 
     def refresh(self):
 
-        print("refresh()")
+        print("GCSWidgetConsole.refresh()")
 
         # Remove old panes
         for i in range(0,self.vbox.count()):
@@ -107,6 +109,10 @@ class GCSWidgetConsolePane(QFrame):
         mylayout = QWidget(self)
         mylayout.setLayout(vbox)
 
+        self.horizon = HorizonWidget(self)
+        #self.horizon.resize(100,100)
+        self.horizon.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.horizon.setGeometry(5,5,100,100)
         f = QFont( "Arial", 14, QFont.Bold)
         self.label_name = QLabel(str(self.mav.system_id), self)
         self.label_name.setFont(f)
@@ -118,17 +124,19 @@ class GCSWidgetConsolePane(QFrame):
         self.label_climb = QLabel('', self)
         self.label_roll = QLabel('', self)
         self.label_pitch = QLabel('', self)
-        self.label_WP = QLabel('', self)
-        self.label_WPDist = QLabel('', self)
-        self.label_WPBearing = QLabel('', self)
-        self.label_wind = QLabel('', self)
+        self.label_WP = QLabel('WP ', self)
+        self.label_WPDist = QLabel('WP Dist', self)
+        self.label_WPBearing = QLabel('WP Bearing', self)
+        self.label_wind = QLabel('Wind ', self)
+        self.label_mode = QLabel('Mode', self)
 
-        self.scene = QGraphicsScene()
-        self.hud = QGraphicsView(self.scene)
+        #self.scene = QGraphicsScene()
+        #self.hud = QGraphicsView(self.scene)
 
 
         vbox.addWidget(self.label_name)
-        vbox.addWidget(self.hud.viewport())
+        vbox.addWidget(self.horizon)
+        #vbox.addWidget(self.hud.viewport())
         vbox.addWidget(self.label_altitude)
         vbox.addWidget(self.label_airspeed)
         vbox.addWidget(self.label_gndspeed)
@@ -141,6 +149,7 @@ class GCSWidgetConsolePane(QFrame):
         vbox.addWidget(self.label_WP)
         vbox.addWidget(self.label_WPDist)
         vbox.addWidget(self.label_WPBearing)
+        vbox.addWidget(self.label_mode)
 
         self.setLayout(vbox)
 
@@ -156,16 +165,23 @@ class GCSWidgetConsolePane(QFrame):
             self.label_altitude.setText("{:.0f}m".format(m.alt))
             self.label_climb.setText("{:.2f}".format(m.climb))
 
-        if mtype == "ATTITUDE":
-            self.label_roll.setText("Roll: {:.0f}".format(math.degrees(m.roll)))
-            self.label_pitch.setText("Pitch: {:.0f}".format(math.degrees(m.pitch)))
+        elif mtype == "ATTITUDE":
+            #self.label_roll.setText("Roll: {:.0f}".format(math.degrees(m.roll)))
+            #self.label_pitch.setText("Pitch: {:.0f}".format(math.degrees(m.pitch)))
+            self.horizon.roll_deg = math.degrees(m.roll)
+            self.horizon.pitch_deg = math.degrees(m.pitch)
+            self.horizon.update()
 
-        elif type == 'WIND':
+        elif mtype == 'WIND':
             self.label_wind.setText('Wind: %u/%.2f' % (m.direction, m.speed))
 
-        elif type == 'NAV_CONTROLLER_OUTPUT':
-            self.console.set_status('Distance %u' % m.wp_dist)
-            self.console.set_status('Bearing %u' % m.target_bearing)
+        elif mtype == 'NAV_CONTROLLER_OUTPUT':
+            self.label_WPDist.setText('WP Dist %u' % m.wp_dist)
+            self.label_WPBearing.setText('Bearing %u' % m.target_bearing)
 
-        elif type in ['WAYPOINT_CURRENT', 'MISSION_CURRENT']:
-            self.console.set_status('WP', 'WP %u' % m.seq)
+        elif mtype in ['WAYPOINT_CURRENT', 'MISSION_CURRENT']:
+            self.label_WP.setText('WP %u' % m.seq)
+
+        elif mtype == 'HEARTBEAT':
+            flightmode = mavutil.mode_string_v10(m)
+            self.label_mode.setText("Mode %s" % flightmode)

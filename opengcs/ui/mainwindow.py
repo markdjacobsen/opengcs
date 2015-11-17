@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
 
         # Get a source filename
         filename = QFileDialog.getOpenFileName(self, 'Open Perspective File', 'ui/perspectives', 'Perspective Files (*.ini)')
-        print(filename)
+        #print(filename)
 
         # Copy the file to overwrite autosave.ini
         shutil.copyfile(filename, 'ui/perspectives/autosave.ini')
@@ -352,7 +352,15 @@ class MainWindow(QMainWindow):
         # TODO support sorting of focused MAV combo box. Sort keys?
         self.combo_focused_mav.blockSignals(True)
         self.combo_focused_mav.clear()
-        print("main_window.catch_network_changed")
+
+        # Add all swarms to the focus combobox
+        for swarm in self.state.mav_network.swarms:
+            v = QVariant(swarm)
+            self.combo_focused_mav.addItem(swarm.name, v)
+            if swarm == self.state.focused_object:
+                self.combo_focused_mav.setCurrentIndex(self.combo_focused_mav.count()-1)
+
+        # Add all MAVs to the focus combobox
         for mavkey in self.state.mav_network.mavs:
             mav = self.state.mav_network.mavs[mavkey]
             v = QVariant(mav)

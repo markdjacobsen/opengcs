@@ -3,6 +3,7 @@
 from datetime import timedelta
 from math import degrees
 from GCSWidget import *
+from HorizonWidget import *
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 from pymavlink import mavutil
@@ -29,20 +30,23 @@ class GCSWidgetHUD (GCSWidget):
     def init_ui(self):
 
         # HUD assets
-        img_horizon_bg = QPixmap(path.join(self.asset_path, 'horizon_back.png'))
-        img_pitch_ladder = QPixmap(path.join(self.asset_path, 'horizon_back.png'))
-        img_roll_caret = QPixmap(path.join(self.asset_path, 'horizon_back.png'))
+        #img_horizon_bg = QPixmap(path.join(self.asset_path, 'horizon_back.png'))
+        #img_pitch_ladder = QPixmap(path.join(self.asset_path, 'horizon_back.png'))
+        #img_roll_caret = QPixmap(path.join(self.asset_path, 'horizon_back.png'))
+
+        self.horizon = HorizonWidget(self)
+        self.horizon.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # HUD labels
-        self.label_horizon_bg = QLabel("", self)
-        self.label_horizon_bg.setScaledContents(True)
-        self.label_horizon_bg.setPixmap(img_horizon_bg)
+        #self.label_horizon_bg = QLabel("", self)
+        #self.label_horizon_bg.setScaledContents(True)
+        #self.label_horizon_bg.setPixmap(img_horizon_bg)
 
         # Labels on artificial horizon
         self.label_throttle = QLabel("Thr 000%", self)
         self.label_heading = QLabel("Hdg 000°", self)
-        self.label_roll = QLabel("Roll -000.00°", self)
-        self.label_pitch = QLabel("Pitch -000.00°", self)
+        #self.label_roll = QLabel("Roll -000.00°", self)
+        #self.label_pitch = QLabel("Pitch -000.00°", self)
         self.label_rssi = QLabel("RSSI 100%", self)
         self.label_uptime = QLabel("T 0:00:00", self)
         self.label_airspeed = QLabel("AS 000.00m/s", self)
@@ -59,8 +63,8 @@ class GCSWidgetHUD (GCSWidget):
         self.label_gndspeed_val = QLabel("000.00m/s", self)
         self.label_dist_wp_txt = QLabel("Dist to WP", self)
         self.label_dist_wp_val = QLabel("0000.00m", self)
-        self.label_yaw_txt = QLabel("Yaw", self)
-        self.label_yaw_val = QLabel("-000.00°", self)
+        #self.label_yaw_txt = QLabel("Yaw", self)
+        #self.label_yaw_val = QLabel("-000.00°", self)
         self.label_climb_txt = QLabel("Vertical Speed", self)
         self.label_climb_val = QLabel("-000.00m/s", self)
         self.label_dist_mav_txt = QLabel("Dist to MAV", self)
@@ -77,15 +81,21 @@ class GCSWidgetHUD (GCSWidget):
         #print("refresh()")
 
         super(GCSWidgetHUD, self).refresh()
+
+
         w = self.geometry().width()
         h = self.geometry().height() - 22  # 22 pixels for title bar
 
-        self.label_horizon_bg.setGeometry(1, 22, w-2, h/3-2)
+        self.horizon.setFixedWidth(w)
+        self.horizon.setFixedHeight(h)
+
+        self.horizon.update()
+        #self.label_horizon_bg.setGeometry(1, 22, w-2, h/3-2)
 
         self.label_throttle.move(3, 16)
         self.label_heading.move(w/2-28, 16)
-        self.label_roll.move(w/2-40, 50)
-        self.label_pitch.move(w/2-45, h/6)
+        #self.label_roll.move(w/2-40, 50)
+        #self.label_pitch.move(w/2-45, h/6)
         self.label_rssi.move(w-73, 16)
         self.label_uptime.move(w-64, 31)
         self.label_airspeed.move(3, h/3-20)
@@ -101,8 +111,8 @@ class GCSWidgetHUD (GCSWidget):
         self.label_gndspeed_val.move(w-74, h/3+35)
         self.label_dist_wp_txt.move(3, h/3+60)
         self.label_dist_wp_val.move(3, h/3+75)
-        self.label_yaw_txt.move(w-30, h/3+60)
-        self.label_yaw_val.move(w-57, h/3+75)
+        #self.label_yaw_txt.move(w-30, h/3+60)
+        #self.label_yaw_val.move(w-57, h/3+75)
         self.label_climb_txt.move(3, h/3+100)
         self.label_climb_val.move(3, h/3+115)
         self.label_dist_mav_txt.move(w-83, h/3+100)
@@ -132,18 +142,22 @@ class GCSWidgetHUD (GCSWidget):
             self.label_airspeed.setText("AS {:.2f}m/s".format(m.airspeed))
             self.label_gndspeed.setText("GS {:.2f}m/s".format(m.groundspeed))
             self.label_gndspeed_val.setText("{:.2f}m/s".format(m.groundspeed))
-            self.label_heading.setText("Hdg {:.0f}°".format(m.heading))
+            self.label_heading.setText("Hdg {:.0f}".format(m.heading))
             self.label_throttle.setText("Thr {:.0%}".format(m.throttle))
             self.label_altitude_val.setText("{:.2f}m".format(m.alt))
             self.label_climb_val.setText("{:.2f}".format(m.climb))
 
         if mtype == "ATTITUDE":
-            self.label_roll.setText("Roll {:.2f}°".format(degrees(m.roll)))
-            self.label_pitch.setText("Pitch {:.2f}°".format(degrees(m.pitch)))
-            self.label_yaw_val.setText("{:.2f}°".format(degrees(m.yaw)))
-            rollspeed = m.rollspeed
-            pitchspeed = m.pitchspeed
-            yawspeed = m.yawspeed
+            self.horizon.roll_deg = degrees(m.roll)
+            self.horizon.pitch_deg = degrees(m.pitch)
+
+            #self.label_roll.setText("Roll {:.2f}°".format(degrees(m.roll)))
+            #self.label_pitch.setText("Pitch {:.2f}°".format(degrees(m.pitch)))
+            #self.label_yaw_val.setText("{:.2f}".format(degrees(m.yaw)))
+            #rollspeed = m.rollspeed
+            #pitchspeed = m.pitchspeed
+            #yawspeed = m.yawspeed
+            self.horizon.update()
 
         if mtype == "SYSTEM_TIME":
             self.label_uptime.setText("T {}".format(timedelta(seconds=m.time_boot_ms/1000)))
