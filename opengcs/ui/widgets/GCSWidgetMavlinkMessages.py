@@ -2,6 +2,7 @@
 # TODO remove icon in dialog titlebar
 # TODO settings dialog
 # TODO autoscroll to bottom
+# TODO refresh() is called too many times
 
 from GCSWidget import *
 from PyQt4.QtGui import *
@@ -107,7 +108,6 @@ class GCSWidgetMavlinkMessages (GCSWidget):
 
     def on_button_filter(self):
 
-        print('on_button_filter')
         self.dlg_filter.show() # Run modeless
         self.dlg_filter.raise_()
 
@@ -157,7 +157,7 @@ class GCSWidgetMavlinkMessagesFilterDialog (QDialog):
         self.refresh()
 
     def refresh(self):
-        print('refresh')
+
         self.list_messages.clear()
 
         # Initialize by checking allowable messages if a filter is applied, or checking
@@ -206,7 +206,7 @@ class GCSWidgetMavlinkMessagesFilterDialog (QDialog):
         return items
 
     def on_item_changed(self):
-        print('on_item_changed')
+
         self.parent.muted_messages = []
         items = self.list_items()
         for item in items:
