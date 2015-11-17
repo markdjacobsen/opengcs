@@ -1,7 +1,4 @@
-# TODO resizing shouldn't force a redrawing of the entire interface
-# TODO Allow horizontal expansion
-# TODO No vertical stretching between panes
-# TODO Display panes beginnng at (0,0)
+# TODO Allow horizontal expansion of panes
 
 from GCSWidget import *
 from PyQt4.QtGui import *
@@ -9,7 +6,7 @@ from opengcs import *
 from gcs_state import *
 from pymavlink import mavutil
 import math
-from HorizonWidget import *
+from GCSWidgetHUD import *
 
 class GCSWidgetConsole (GCSWidget):
 
@@ -45,40 +42,28 @@ class GCSWidgetConsole (GCSWidget):
         self.scrollarea.setWidget(self.mylayout)
         self.scrollarea.setWidgetResizable(True)
 
+        #self.scrollarea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+
         self.setWidget(self.scrollarea)
 
     def resizeEvent(self, event):
-
-        self.refresh()
+        super(GCSWidgetConsole, self).refresh()
+    #   self.refresh()
 
     def refresh(self):
 
-        print("GCSWidgetConsole.refresh()")
+        # Clear out the routing dictionary first, so no messages are delivered to
+        # widgets that we are deleting
+        self.routing_dictionary = {}
 
-        # Remove old panes from the layout
-        #for i in range(0,self.vbox.count()):
-        #    item = self.vbox.itemAt(0)
-        #    item.hide()
-        #    self.vbox.removeAt
-        #    self.vbox.removeItem(item)
-        #    item = None
-
+        # Remove existing panes
         for i in range(0, self.vbox.count()):
-            widget = self.vbox.takeAt(i).widget()
+            widget = self.vbox.takeAt(0).widget()
             if widget is not None:
                 widget.deleteLater()
                 widget.hide()
 
-        # Remove and delete them from the widget
-        #for child in self.children():
-        #    if isinstance(child, GCSWidgetConsolePane):
-        #        print("Removing item " + str(child))
-        #        child.deleteLater()
-        #        #child.setParent(None)
-        #        child = None
-
         mavlist = []
-        self.routing_dictionary = {}
 
         if isinstance(self._datasource, MAV):
             mavlist.append(self._datasource)
@@ -87,17 +72,19 @@ class GCSWidgetConsole (GCSWidget):
                 mavlist.append(mav)
 
         for mav in mavlist:
-            print('Adding MAV')
             pane = GCSWidgetConsolePane(self.mylayout, self.state, mav)
-            self.vbox.addWidget(pane)
+            self.vbox.addWidget(pane, 0)
             self.routing_dictionary[mav.system_id] = pane
-
+        self.vbox.addStretch(1)
         return
 
     def process_messages(self, m):
 
         # Forward the packet to the appropriate MAV pane
-        self.routing_dictionary[m.get_header().srcSystem].process_messages(m)
+        # Need to check that the key exists, in case we're in the process of rebuilding the dictionary
+        # when a message comes in
+        if m.get_header().srcSystem in self.routing_dictionary:
+            self.routing_dictionary[m.get_header().srcSystem].process_messages(m)
         return
 
     def read_settings(self, settings):
@@ -112,7 +99,7 @@ class GCSWidgetConsole (GCSWidget):
 class GCSWidgetConsolePane(QFrame):
 
     def __init__(self, parent, state, mav):
-        print("GCSWidgetConsolePane.init()")
+
         super(GCSWidgetConsolePane, self).__init__(parent)
         self.state = state
         self.mav = mav
@@ -206,8 +193,8 @@ class GCSWidgetConsolePane(QFrame):
             self.label_gndspeed.setText("GS: {:.1f}".format(m.groundspeed))
             self.label_heading.setText("Hdg: {:.0f}".format(m.heading))
             self.label_throttle.setText("Thr {:.0%}".format(m.throttle))
-            self.label_altitude.setText("{:.0f}m".format(m.alt))
-            self.label_climb.setText("{:.2f}".format(m.climb))
+            self.label_altitude.setText("Alt: {:.0f}m".format(m.alt))
+            self.label_climb.setText("Clmb: {:.1f}".format(m.climb))
 
         elif mtype == "ATTITUDE":
             #self.label_roll.setText("Roll: {:.0f}".format(math.degrees(m.roll)))
@@ -228,4 +215,4 @@ class GCSWidgetConsolePane(QFrame):
 
         elif mtype == 'HEARTBEAT':
             flightmode = mavutil.mode_string_v10(m)
-            self.label_mode.setText("Mode %s" % flightmode)
+            self.label_mode.setText("%s" % flightmode)

@@ -1,8 +1,6 @@
 # TODO colorize messages
 # TODO remove icon in dialog titlebar
-# TODO widget should default to showing all messages
 # TODO settings dialog
-# TODO prevent opening multiple filter dialogs
 # TODO autoscroll to bottom
 
 from GCSWidget import *
@@ -21,9 +19,11 @@ class GCSWidgetMavlinkMessages (GCSWidget):
         self.setWindowTitle('Mavlink Message Traffic')
         self.setMinimumSize(100, 100)
 
+        self.set_datasource_allowable(WidgetDataSource.SINGLE|WidgetDataSource.SWARM)
+
         # Widget settings
         self.max_messages = 500
-        self.allowable_messages = []
+        self.muted_messages = []
 
         self.init_ui()
 
@@ -73,14 +73,15 @@ class GCSWidgetMavlinkMessages (GCSWidget):
         vbox.setMenuBar(self.toolbar)
         self.setWidget(mylayout)
 
+        self.dlg_filter = GCSWidgetMavlinkMessagesFilterDialog(self)
 
     def resizeEvent(self, event):
-
+        super(GCSWidgetMavlinkMessages, self).refresh()
         self.refresh()
 
-
     def refresh(self):
-
+        super(GCSWidgetMavlinkMessages, self).refresh()
+        self.dlg_filter.refresh()
         return
 
     def process_messages(self, m):
@@ -90,11 +91,10 @@ class GCSWidgetMavlinkMessages (GCSWidget):
 
         mtype = m.get_type()
 
-        if mtype in self.allowable_messages:
+        if mtype not in self.muted_messages:
             self.cursor.insertBlock()
             self.cursor.insertText(QString(str(m.get_header().srcSystem)) + QString(': ') + QString(str(m)))
 
-        #if mtype == "VFR_HUD":
         return
 
     def read_settings(self, settings):
@@ -108,8 +108,8 @@ class GCSWidgetMavlinkMessages (GCSWidget):
     def on_button_filter(self):
 
         print('on_button_filter')
-        d = GCSWidgetMavlinkMessagesFilterDialog(self)
-        d.show() # Run modeless
+        self.dlg_filter.show() # Run modeless
+        self.dlg_filter.raise_()
 
     def on_button_settings(self):
 
@@ -135,30 +135,6 @@ class GCSWidgetMavlinkMessagesFilterDialog (QDialog):
         vbox = QVBoxLayout()
 
         self.list_messages = QListWidget()
-
-        # If the filter is set to no messages at the time the widget is created, we
-        # treat this as an indicator that is a filter is not applied and ALL
-        # messages should be allowed.
-        load_all = (self.parent.allowable_messages == [])
-
-        # Initialize by checking allowable messages if a filter is applied, or checking
-        # all messages if a filter is not applied.
-        if isinstance(self.parent.get_datasource(), MAV):
-            for msg in self.parent.get_datasource().msg_types:
-                item = QListWidgetItem(msg)
-                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                if load_all or msg in self.parent.allowable_messages:
-                    item.setCheckState(Qt.Checked)
-                else:
-                    item.setCheckState(Qt.Unchecked)
-                self.list_messages.addItem(item)
-
-        # If no filter was applied at the time of initialize, this changes
-        # allowable_messages to include ALL message types
-        for item in self.list_items():
-            if item.checkState() == Qt.Checked:
-                self.parent.allowable_messages.append(str(item.text()))
-
         self.list_messages.itemChanged.connect(self.on_item_changed)
 
         btn_select_all = QPushButton('All')
@@ -170,11 +146,44 @@ class GCSWidgetMavlinkMessagesFilterDialog (QDialog):
         box_screen_buttons.addWidget(btn_select_all)
         box_screen_buttons.addWidget(btn_select_none)
 
-        vbox.addWidget(self.list_messages)
-        vbox.addLayout(box_screen_buttons)
 
+        vbox.addLayout(box_screen_buttons)
+        vbox.addWidget(self.list_messages)
 
         self.setLayout(vbox)
+
+    def showEvent(self, QShowEvent):
+
+        self.refresh()
+
+    def refresh(self):
+        print('refresh')
+        self.list_messages.clear()
+
+        # Initialize by checking allowable messages if a filter is applied, or checking
+        # all messages if a filter is not applied.
+        firstmav = None
+        if isinstance(self.parent.get_datasource(), MAV):
+            firstmav = self.parent.get_datasource()
+        elif isinstance(self.parent.get_datasource(), Swarm):
+            if len(self.parent.get_datasource().mavs) > 0:
+                firstmav = self.parent.get_datasource().mavs[0]
+
+        if firstmav is not None:
+            for msg in firstmav.msg_types:
+                item = QListWidgetItem(msg)
+                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                if msg not in self.parent.muted_messages:
+                    item.setCheckState(Qt.Checked)
+                else:
+                    item.setCheckState(Qt.Unchecked)
+                self.list_messages.addItem(item)
+
+        # If no filter was applied at the time of initialize, this changes
+        # allowable_messages to include ALL message types
+        for item in self.list_items():
+            if item.checkState() != Qt.Checked:
+                self.parent.muted_messages.append(str(item.text()))
 
 
     def on_button_select_all(self):
@@ -197,12 +206,12 @@ class GCSWidgetMavlinkMessagesFilterDialog (QDialog):
         return items
 
     def on_item_changed(self):
-
-        self.parent.allowable_messages = []
+        print('on_item_changed')
+        self.parent.muted_messages = []
         items = self.list_items()
         for item in items:
-            if item.checkState() == Qt.Checked:
-                self.parent.allowable_messages.append(str(item.text()))
+            if item.checkState() != Qt.Checked:
+                self.parent.muted_messages.append(str(item.text()))
 
 class GCSWidgetMavlinkMessagesSettingsDialog (QDialog):
 

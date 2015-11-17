@@ -3,15 +3,54 @@
 from datetime import timedelta
 from math import degrees
 from GCSWidget import *
-from HorizonWidget import *
 from PyQt4.QtGui import *
 from PyQt4 import QtCore
 from pymavlink import mavutil
+from opengcs import *
 
 # TODO window geometry is saved differently for each screen
 # TODO need to figure out how to remove toolbar
 # TODO toolbar needs to update after editing screens
 # TODO delete widgets from perspective files when closed
+# TODO HUD scale factors will need to vary based on the size of the widget
+
+# This is a reusable widget for displaying a horizon line, given roll and pitch.
+# It is used by the GCSWidgetHud widget below, and is also used in the GCSWidgetConsole.
+class HorizonWidget (QWidget):
+
+    def __init__(self, parent):
+        super(HorizonWidget, self).__init__(parent)
+        self.parent = parent
+        self.roll_deg = 0
+        self.pitch_deg = 0
+        self.initUI()
+        self.show()
+
+
+    def initUI(self):
+        """
+        Initialize the user interface for the main window
+        """
+        self.setMinimumSize(75, 75)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setFixedSize(75, 75)
+        self.img = QPixmap(gcsfile('art/hud/horizon_back.png'))
+
+    def paintEvent(self, QPaintEvent):
+
+        # During a paint event, we essentially translate and rotate the coordinate system
+        # and then draw a scaled version of the horizon. We apply some scaling/zooming
+        # because the image needs to be bigger than the widget, so no whitepsace shows
+        # around the edges during rotations.
+        painter = QPainter(self)#.parent)
+        painter.save()
+        painter.translate(self.width()/2, self.height()/2 + (self.pitch_deg*5))
+        painter.rotate(-self.roll_deg)
+
+        source = QRectF(0, 0, self.img.width(), self.img.height())
+        dest = QRectF(-self.width()*2, -self.height()*2, self.width()*4, self.height()*4)
+        painter.drawPixmap(dest, self.img, source)
+        painter.restore()
 
 class GCSWidgetHUD (GCSWidget):
 
