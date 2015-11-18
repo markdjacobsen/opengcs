@@ -14,6 +14,7 @@ import sys
 import os
 import functools
 from pymavlink import mavutil
+from opengcs import *
 
 from ui.widgets.GCSWidget import GCSWidget
 
@@ -92,9 +93,9 @@ class ConnectionsDialog (QDialog):
             item = QTableWidgetItem('0')
             status = QTableWidgetItem()
             if conn.is_port_dead() == False:
-                status.setIcon(QIcon('art/16x16/dialog-clean.png'))
+                status.setIcon(QIcon(gcsfile('art/16x16/dialog-clean.png')))
             else:
-                status.setIcon(QIcon('art/16x16/dialog-error-2.png'))
+                status.setIcon(QIcon(gcsfile('art/16x16/dialog-error-2.png')))
             self.table_connections.setItem(row, 0, status)
             self.table_connections.setItem(row, 1, QTableWidgetItem(conn.port))
             self.table_connections.setItem(row, 2, QTableWidgetItem(str(conn.number)))
@@ -118,12 +119,12 @@ class ConnectionsDialog (QDialog):
         conntype = self.combo_new_connection.currentText()
         conn = None
 
-        if conntype == "TCP" or conntype == "UDP":
+        if conntype == 'TCP' or conntype == 'UDP':
             try:
                 conn = Connection(self.state, str(self.combo_new_connection.currentText()), int(self.lineedit_new_port.text()))
             except ValueError:
                 msg_box = QMessageBox()
-                msg_box.setText("Please enter a valid port number")
+                msg_box.setText('Please enter a valid port number')
                 msg_box.exec_()
                 return
         else:
@@ -148,7 +149,7 @@ class ConnectionsDialog (QDialog):
         # TODO implmenet disconnect
         port = self.table_connections.item(row, 1).text()
         conn = self.state.mav_network.connections[row]
-        print "Disconnect " + conn.port
+        print 'Disconnect ' + conn.port
         conn.close()
         # TODO error between these two lines... the serial connection is not truly closed before
         # remove_connection is called. That means more mavlink packets come in after the
@@ -158,7 +159,7 @@ class ConnectionsDialog (QDialog):
 
     def on_connection_combo_changed(self):
         conntype = self.combo_new_connection.currentText()
-        if conntype == "TCP" or conntype == "UDP":
+        if conntype == 'TCP' or conntype == 'UDP':
             self.combo_new_port.setVisible(False)
             self.lineedit_new_port.setVisible(True)
         else:
@@ -187,9 +188,9 @@ class EditPerspectiveDialog (QDialog):
         self.tab_widgets = QWidget()
         self.tab_toolbar = QWidget()
 
-        self.tabwidget.addTab(self.tab_screens, "Screens")
-        self.tabwidget.addTab(self.tab_widgets, "Widgets")
-        self.tabwidget.addTab(self.tab_toolbar, "Toolbar")
+        self.tabwidget.addTab(self.tab_screens, 'Screens')
+        self.tabwidget.addTab(self.tab_widgets, 'Widgets')
+        self.tabwidget.addTab(self.tab_toolbar, 'Toolbar')
 
         self.init_tab_screens()
         self.init_tab_widgets()
@@ -201,7 +202,7 @@ class EditPerspectiveDialog (QDialog):
 
         # Build the left panel
         vbox_screen_list = QVBoxLayout()
-        vbox_screen_list.addWidget(QLabel("Screen list"))
+        vbox_screen_list.addWidget(QLabel('Screen list'))
 
         self.list_screens = QListWidget()
         btn_add_screen = QPushButton('+')
@@ -222,14 +223,11 @@ class EditPerspectiveDialog (QDialog):
         #vbox_screen_settings.addWidget(group)
 
         layout_screen_settings = QFormLayout()
-        layout_screen_settings.addRow("Name:", QLineEdit())
-        layout_screen_settings.addRow("Tool Tip Text:", QLineEdit())
-        layout_screen_settings.addRow("Status Bar Text:", QLineEdit())
-        layout_screen_settings.addRow("Icon:", QLineEdit())
+        layout_screen_settings.addRow('Name:', QLineEdit())
+        layout_screen_settings.addRow('Tool Tip Text:', QLineEdit())
+        layout_screen_settings.addRow('Status Bar Text:', QLineEdit())
+        layout_screen_settings.addRow('Icon:', QLineEdit())
         hbox.addLayout(layout_screen_settings)
-
-
-
 
         self.tab_screens.setLayout(hbox)
 
@@ -248,7 +246,7 @@ class EditPerspectiveDialog (QDialog):
             i = QListWidgetItem(w)
             self.listWidget.addItem(i)
 
-        label = QLabel("Select a widget to add to the current screen")
+        label = QLabel('Select a widget to add to the current screen')
 
         button_cancel = QPushButton('&Cancel', self)
         button_cancel.clicked.connect(self.on_button_cancel)
@@ -273,11 +271,12 @@ class EditPerspectiveDialog (QDialog):
         return
 
     def list_widgets(self):
-        sys.path.append("ui/widgets/")
+        sys.path.append('ui/widgets/')
 
         # Recursive file listing code from
         # http://stackoverflow.com/questions/3207219/how-to-list-all-files-of-a-directory-in-python
         f = []
+        # TODO should this be in terms of gcsfile?
         path = self.state.path + '/ui/widgets'
         #print path
         for (dirpath, dirnames, filenames) in os.walk(path):
@@ -312,11 +311,11 @@ class EditPerspectiveDialog (QDialog):
 
     def on_button_add_screen(self):
         # TODO on_button_add_screen
-        print("on_button_add_screen()")
+        print('on_button_add_screen()')
 
     def on_button_delete_screen(self):
         # TODO on_button_delete_screen
-        print("on_button_delete_screen()")
+        print('on_button_delete_screen()')
 
 class AddWidgetDialog (QDialog):
 
@@ -328,6 +327,7 @@ class AddWidgetDialog (QDialog):
         self.init_ui()
         self.widget_name = None
         self.widget_position = None
+        self.result = False
 
     def init_ui(self):
         self.setWindowTitle('Add Widget')
@@ -340,7 +340,7 @@ class AddWidgetDialog (QDialog):
             i = QListWidgetItem(w.widget_name_plaintext)
             self.listWidget.addItem(i)
 
-        label = QLabel("Select a widget to add to the current screen")
+        label = QLabel('Select a widget to add to the current screen')
 
         self.combo_position = QComboBox(self)
         self.combo_position.addItem('Left')
@@ -364,7 +364,7 @@ class AddWidgetDialog (QDialog):
         vbox = QVBoxLayout()
         vbox.addWidget(label)
         vbox.addWidget(self.listWidget)
-        vbox.addWidget(QLabel("Position for new widget:"))
+        vbox.addWidget(QLabel('Position for new widget:'))
         vbox.addWidget(self.combo_position)
         vbox.addLayout(hbox1)
 
@@ -392,6 +392,7 @@ class EditScreensDialog (QDialog):
         self.screens = screens
         self.init_ui()
         self.selected_screen = None
+        self.uuids_to_delete = []
 
     def init_ui(self):
         self.setWindowTitle('Edit Screens')
@@ -401,7 +402,7 @@ class EditScreensDialog (QDialog):
 
         # Build the left panel
         vbox_screen_list = QVBoxLayout()
-        vbox_screen_list.addWidget(QLabel("Screen list"))
+        vbox_screen_list.addWidget(QLabel('Screen list'))
 
         self.list_screens = QListWidget()
         self.list_screens.currentItemChanged.connect(self.on_button_item_changed)
@@ -432,10 +433,10 @@ class EditScreensDialog (QDialog):
 
 
         layout_screen_settings = QFormLayout()
-        layout_screen_settings.addRow("Name:", self.line_name)
-        layout_screen_settings.addRow("Tool Tip Text:", self.line_tooltip)
-        layout_screen_settings.addRow("Status Bar Text:", self.line_statustip)
-        layout_screen_settings.addRow("Icon (new):", self.btn_icon)
+        layout_screen_settings.addRow('Name:', self.line_name)
+        layout_screen_settings.addRow('Tool Tip Text:', self.line_tooltip)
+        layout_screen_settings.addRow('Status Bar Text:', self.line_statustip)
+        layout_screen_settings.addRow('Icon (new):', self.btn_icon)
         hbox.addLayout(layout_screen_settings)
 
         button_cancel = QPushButton('&Cancel', self)
@@ -498,8 +499,7 @@ class EditScreensDialog (QDialog):
             # TODO why is this not disappearing from the list?
             self.list_screens.takeItem(self.list_screens.currentIndex().row())
             self.screens.remove(self.selected_screen)
-            print(self.selected_screen.uuid)
-            self.parent.perspective.remove(self.selected_screen.uuid)
+            self.uuids_to_delete.append(self.selected_screen.uuid)
 
     def on_button_item_changed(self):
 
@@ -523,11 +523,11 @@ class EditScreensDialog (QDialog):
             self.btn_icon.setIcon(icon)
 
         else:
-            self.line_name.setText("")
-            self.line_icon.setText("")
-            self.line_tooltip.setText("")
-            self.line_statustip.setText("")
-            self.line_name.setText("")
+            self.line_name.setText('')
+            self.line_icon.setText('')
+            self.line_tooltip.setText('')
+            self.line_statustip.setText('')
+            self.line_name.setText('')
             self.btn_icon.setIcon(None)
             self.line_name.setEnabled(False)
             self.line_icon.setEnabled(False)

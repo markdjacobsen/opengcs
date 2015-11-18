@@ -70,19 +70,13 @@ class GCSWidget (QDockWidget):
         self.customContextMenuRequested.connect(self.show_menu)
         self.set_colors()
 
-        # Get application path and build asset path
-        # TODO we should get the app's path from somewhere else, perhaps a config file
-        app_dir = path.dirname(sys.argv[0])
-        asset_dir = 'art/hud'
-        self.asset_path = path.join(app_dir, asset_dir)
-
     def __str__(self):
         return self.widget_name_plaintext
 
     def closeEvent(self, QCloseEvent):
 
         self.isClosing = True
-        self.parent.on_widget_closed()
+        self.parent.on_widget_closed(self)
 
     def set_colors(self):
         """
@@ -139,12 +133,12 @@ class GCSWidget (QDockWidget):
         self.action_remove.triggered.connect(self.on_action_remove)
 
     def show_menu(self):
-        menu = QMenu()
-        menu.addAction(self.action_floating)
-        menu.addAction(self.action_tabbed)
-        menu.addAction(self.action_titlebar)
-        menu.addAction(self.action_remove)
-        selectedItem = menu.exec_(QCursor.pos())
+        self.menu = QMenu()
+        self.menu.addAction(self.action_floating)
+        self.menu.addAction(self.action_tabbed)
+        self.menu.addAction(self.action_titlebar)
+        self.menu.addAction(self.action_remove)
+        selectedItem = self.menu.exec_(QCursor.pos())
 
     def on_action_floating(self):
         # TODO decide how to handle central widgets, which can be floated but not unfloated
@@ -276,3 +270,13 @@ class GCSWidget (QDockWidget):
         self.property_1 = settings.value("property_1").toString()
         """
         return
+
+    def get_mavs(self):
+        mavs = []
+        if isinstance(self._datasource, MAV):
+            mavs.append(self._datasource)
+        elif isinstance(self._datasource, Swarm):
+            for mav in self._datasource.mavs:
+                mavs.append(mav)
+        print("Mavs:" + str(mavs))
+        return mavs

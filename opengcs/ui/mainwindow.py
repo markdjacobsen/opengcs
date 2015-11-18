@@ -1,6 +1,9 @@
 # TODO: figure out appropriate times to rebuild routing table
 # TODO: catch when widgets change their datasource
 # TODO: support screen ordering
+# TODO: fix relative/fixed path in toolbar icons
+# TODO: id orphaned widget
+# TODO: delete screen from .INI file upon deletion
 
 # Notes
 #
@@ -35,7 +38,7 @@ class Screen:
     This class contains information for a "Screen." The main window can have multiple "screens", which can be
     selected from the toolbar
     """
-    def __init__(self, name='New Screen', iconfile=gcsfile('art/48x48/toolbar_screen.png'), tooltip='', statustip='', order=0, uuid=None):
+    def __init__(self, name='New Screen', iconfile='art/48x48/toolbar_screen.png', tooltip='', statustip='', order=0, uuid=None):
         if uuid:
             self.uuid = uuid
         else:
@@ -53,11 +56,13 @@ class MainWindow(QMainWindow):
         self.state = state
         self.screens = []
         self.toolbar = None
+        self.menubar = QMenuBar(self)
 
         # Load autosave.ini, or create a new one based on default.ini
         if not os.path.isfile(gcsfile('ui/perspectives/autosave.ini')):
             shutil.copyfile(gcsfile('ui/perspectives/default.ini'), gcsfile('ui/perspectives/autosave.ini'))
         self.perspective = QSettings(gcsfile('ui/perspectives/autosave.ini'), QSettings.IniFormat)
+
 
         self.load_widget_library()
         self.initUI()
@@ -79,11 +84,15 @@ class MainWindow(QMainWindow):
         self.active_screen = 0
 
         self.read_window_settings()
+        self.rebuild_actions()
+        self.display_active_screen()
+
+    def rebuild_actions(self):
+
         self.create_actions()
         self.create_toolbar()
         self.create_menu()
         self.create_statusbar()
-        self.display_active_screen()
 
     def refresh(self):
 
@@ -93,11 +102,12 @@ class MainWindow(QMainWindow):
         """
         Display the widgets for the active screen.
         """
-        print('MainWindow.display_active_screen()')
         # Erase all widgets on screen
         for w in self.children():
             if isinstance(w,QDockWidget):
                 self.removeDockWidget(w)
+                w.deleteLater()
+                w  = None
 
         # Load widget/layout info for the current screen
         self.read_screen_settings()
@@ -145,15 +155,16 @@ class MainWindow(QMainWindow):
         self.action_view_fullscreen.triggered.connect(self.on_action_view_fullscreen)
         self.action_view_fullscreen.setCheckable(True)
 
-        self.action_add_screen = QAction('Edit &Screens', self)
-        self.action_add_screen.setStatusTip('Edit the screens in this perspective')
-        self.action_add_screen.triggered.connect(self.on_action_edit_screens)
+        self.action_edit_screens = QAction('Edit &Screens', self)
+        self.action_edit_screens.setStatusTip('Edit the screens in this perspective')
+        self.action_edit_screens.triggered.connect(self.on_action_edit_screens)
 
 
         # Build a list of actions corresponding to the list of screens
         self.actions_screens = []
         screen_number = 0
         for screen in self.screens:
+            print(screen.iconfile)
             action = QAction(QIcon(gcsfile(screen.iconfile)), screen.name, self)
             action.setToolTip(screen.tooltip)
             action.setStatusTip(screen.statustip)
@@ -212,7 +223,7 @@ class MainWindow(QMainWindow):
         """
         Create the menu used by the main window
         """
-        self.menubar = QMenuBar(self)
+        self.menubar.clear()
 
         self.menu_file = self.menubar.addMenu('&File')
         self.menu_file.addAction(self.action_settings)
@@ -229,7 +240,7 @@ class MainWindow(QMainWindow):
         self.menu_view.addAction(self.action_load_perspective)
         self.menu_view.addAction(self.action_view_fullscreen)
         self.menu_view.addAction(self.action_add_widget)
-        self.menu_view_choose_screen.addAction(self.action_add_screen)
+        self.menu_view_choose_screen.addAction(self.action_edit_screens)
 
         self.menu_mav = self.menubar.addMenu('&MAV')
         self.menu_mav.addAction(self.action_connections)
@@ -318,26 +329,32 @@ class MainWindow(QMainWindow):
         d.exec_()
         d.show()
 
-        # If the user selects OK in the dialog, they have possibly
-        # made changes we need to save. Then we redraw verything.
-        # If they cancel, doing a refrsh() will reload screen
-        # settings from the configuraiton file and overwrite any
-        # changes they made and then cancelled.
         if d.result == True:
             self.screen_count = len(self.screens)
+
+            # In case the user has just deleted the active screen
+            if self.active_screen >= len(self.screens):
+                self.active_screen = 0
+
+            # Remvoe any deleted screens from the .INI file
+            for id in d.uuids_to_delete:
+                self.perspective.remove("screen-" + str(id))
+
+            # Something has changed, so save settings
             self.write_window_settings()
-            self.refresh()
         else:
+            # User has canceled, so restore the previous settings
+            self.read_window_settings()
 
-            self.refresh()
-
+        # Rebuild menu and toolbar
+        self.rebuild_actions()
 
     def on_action_add_widget(self):
         # TODO on_action_add_widget
 
         d = AddWidgetDialog(self.state, self)
         d.exec_()
-        d.show()
+        #d.show()
         if d.result == False:
             return
 
@@ -712,13 +729,12 @@ class MainWindow(QMainWindow):
         # This generates a list of GCSWidget-derived classes
         self.widget_library = GCSWidget.__subclasses__()
 
-    def on_widget_closed(self):
-        print("on_widget_closed")
+    def on_widget_closed(self, w):
+        # TODO remove widget from .INI
+        self.perspective.remove(w.objectName())
         # Rebuild the mavlink routing dictionary so this widget can get updates
         self.build_routing_dictionary()
-        print('a')
         # Update the perpsective .INI file to include the new widget
         self.write_screen_settings()
-        print('b')
 
 

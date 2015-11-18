@@ -155,6 +155,19 @@ class GCSWidgetMAVNetwork (GCSWidget):
             settings.setValue("treeview", 2)
         return
 
+    def show_menu(self):
+
+        print(self.tree.currentItem().data_object)
+        super(GCSWidgetMAVNetwork, self).show_menu()
+        self.action_arm = QAction('&Arm/Disarm', self)
+        self.action_arm.triggered.connect(self.on_action_arm)
+        self.menu.addAction(self.action_arm)
+
+    def on_action_arm(self):
+        print('on_action_arm()')
+
+
+
 """
     def catch_network_changed(self):
         print("MAVNetwork changed")

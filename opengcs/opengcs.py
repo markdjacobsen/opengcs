@@ -9,8 +9,16 @@ import pyqtgraph as pg
 
 global state
 
+# Input is a relative filename to the opengcs directory (i.e. art/48x48/toolbar_screen.jpg
+# Output is an absolute path
 def gcsfile(filename):
-    return gcsdir + '/' + filename
+    # Convert filename to str() in case gcsfile() is passed a QString
+    return os.path.join(gcsdir, str(filename))
+
+# Input is an absolute filename
+# Output is a relative filename to the opengcs directory
+def relfile(filename):
+    return os.path.relpath(str(filename), gcsdir)
 
 def main():
 
