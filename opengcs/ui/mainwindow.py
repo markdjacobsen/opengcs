@@ -1,9 +1,7 @@
 # TODO: figure out appropriate times to rebuild routing table
 # TODO: catch when widgets change their datasource
 # TODO: support screen ordering
-# TODO: fix relative/fixed path in toolbar icons
-# TODO: id orphaned widget
-# TODO: delete screen from .INI file upon deletion
+# TODO: central widget gets orphaned
 
 # Notes
 #
@@ -187,9 +185,9 @@ class MainWindow(QMainWindow):
         self.toolbar = self.addToolBar('MainToolBar')
         self.toolbar.setObjectName("MainToolBar")
 
-        self.toolbar.addAction(self.action_add_widget)
-        self.toolbar.addAction(self.action_settings)
         self.toolbar.addAction(self.action_connections)
+        self.toolbar.addAction(self.action_settings)
+
 
         for actionScreen in self.actions_screens:
             self.toolbar.addAction(actionScreen)
@@ -648,7 +646,7 @@ class MainWindow(QMainWindow):
                 self.perspective.endGroup() # End widget group
 
         # Now restore the window and state layout
-        #self.restoreState(self.perspective.value("state").toByteArray())
+        self.restoreState(self.perspective.value("state").toByteArray())
         self.perspective.endGroup()
 
         # This is a bit hackish, but restoreState() also restores the toolbar states. Since
