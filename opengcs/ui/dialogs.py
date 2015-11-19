@@ -44,15 +44,15 @@ class ConnectionsDialog (QDialog):
         self.combo_new_port.addItem('115200')
 
         self.lineedit_new_port = QLineEdit(self)
-        self.lineedit_new_port.setText('14550')
+        self.lineedit_new_port.setText('127.0.0.1:14550')
         self.lineedit_new_port.setVisible(False)
 
         button_connect = QPushButton('&Connect', self)
         button_connect.clicked.connect(self.on_button_connect)
 
 
-        button_ok = QPushButton('&OK', self)
-        button_ok.clicked.connect(self.on_button_ok)
+        button_close = QPushButton('&Close', self)
+        button_close.clicked.connect(self.on_button_close)
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.combo_new_connection)
@@ -63,7 +63,7 @@ class ConnectionsDialog (QDialog):
 
         hbox2 = QHBoxLayout()
         hbox2.addStretch(1)
-        hbox2.addWidget(button_ok)
+        hbox2.addWidget(button_close)
 
         vbox = QVBoxLayout()
         vbox.addWidget(open_connections_label)
@@ -108,20 +108,20 @@ class ConnectionsDialog (QDialog):
         for port in self.serialports:
             if port not in self.openports:
                 self.combo_new_connection.addItem(port)
-        self.combo_new_connection.addItem('TCP')
-        self.combo_new_connection.addItem('UDP')
-        self.combo_new_connection.editTextChanged.connect(self.on_connection_combo_changed)
+        self.combo_new_connection.addItem('tcp')
+        self.combo_new_connection.addItem('udp')
+        self.combo_new_connection.currentIndexChanged.connect(self.on_connection_combo_changed)
 
-    def on_button_ok(self):
+    def on_button_close(self):
         self.close()
 
     def on_button_connect(self):
         conntype = self.combo_new_connection.currentText()
         conn = None
 
-        if conntype == 'TCP' or conntype == 'UDP':
+        if conntype == 'udp' or conntype == 'tcp':
             try:
-                conn = Connection(self.state, str(self.combo_new_connection.currentText()), int(self.lineedit_new_port.text()))
+                conn = Connection(self.state, str(self.combo_new_connection.currentText()), self.lineedit_new_port.text())
             except ValueError:
                 msg_box = QMessageBox()
                 msg_box.setText('Please enter a valid port number')
@@ -158,8 +158,9 @@ class ConnectionsDialog (QDialog):
         self.update_ports()
 
     def on_connection_combo_changed(self):
+
         conntype = self.combo_new_connection.currentText()
-        if conntype == 'TCP' or conntype == 'UDP':
+        if conntype == 'tcp' or conntype == 'udp':
             self.combo_new_port.setVisible(False)
             self.lineedit_new_port.setVisible(True)
         else:

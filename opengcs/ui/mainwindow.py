@@ -700,12 +700,14 @@ class MainWindow(QMainWindow):
         a list of widget classes.
         """
 
-        sys.path.append('ui/widgets/')
+        #sys.path.append('ui/widgets/')
+        #path = self.state.path + '/ui/widgets'
+        path = gcsfile('ui/widgets')
 
         # Recursive file listing code from
         # http://stackoverflow.com/questions/3207219/how-to-list-all-files-of-a-directory-in-python
         f = []
-        path = self.state.path + '/ui/widgets'
+        #
         #print path
         for (dirpath, dirnames, filenames) in os.walk(path):
             f.extend(filenames)
