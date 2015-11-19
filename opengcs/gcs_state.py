@@ -343,10 +343,17 @@ class Connection:
         self.mavs = {}
 
         # TODO Support UDP/TCP connections
-        if port == "UDP" or port == "TCP":
+        device = ""
+        if port == "udp":
+            device = "udp:" + str(number)
+        elif port == "tcp":
+            device = "tcp:" + str(number)
             return
-
-        self.master = mavutil.mavlink_connection(port, baud=number)
+        else:
+            device = port + "," + str(number)
+        print(device)
+        #self.master = mavutil.mavlink_connection(port, baud=number)
+        self.master = mavutil.mavlink_connection(device)
 
         # Run port monitoring on a secondary thread. Any time a mavlink message is received,
         # it signals for the mav_network.process_messages function to handle the message on the
