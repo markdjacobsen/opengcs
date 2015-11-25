@@ -12,6 +12,7 @@ import multiprocessing
 import urllib2
 import pickle
 from PyQt4.QtCore import *
+import serial
 
 SINGLE = 0b01
 SWARM = 0b10
@@ -60,7 +61,7 @@ class GCSState:
 
     def load_mav_library(self):
 
-        # TODO: I am temporarily hard-coding data, rather than loading it frm a file
+        # TODO: I am temporarily hard-coding data, rather than loading it from a file
         multicopter_template = MAVTemplate('Generic Multicopter')
         fixedwing_template = MAVTemplate('Generic Fixed-Wing')
         fx61_template = MAVTemplate('Generic Fixed-Wing')
@@ -185,7 +186,6 @@ class MAVNetwork:
             # Add this mav to swarm 0, which always represents all mavs
             self.swarms[0].add_mav(mav)
 
-
             for signal in self.on_mav_added:
                 signal(mav)
             for signal in self.on_network_changed:
@@ -226,7 +226,7 @@ class MAVNetwork:
             swarm.remove_mav(mav)
 
         for signal in self.on_mav_removed:
-            signal()
+            signal(mav)
         for signal in self.on_network_changed:
             signal()
 
@@ -248,7 +248,7 @@ class MAVNetwork:
         """
         This method receives mavlink traffic from ALL open connections. It forwards
         messages to the appropriate mav objects, and adds new mavs as they are
-        detected. It alsos signals any subscribers.
+        detected. It also signals any subscribers.
         """
 
         system_id = m.get_header().srcSystem
@@ -314,14 +314,24 @@ class MavlinkThread(QThread):
         super(MavlinkThread, self).__init__()
         self.conn = conn
         self.master = conn.master
-        self.command_exit = False
 
     def run(self):
-
-        while self.command_exit is False:
-            m = self.master.recv_match(blocking=True)
+        while True:   # self.command_exit is False:
+            m = None
+            try:
+                m = self.master.recv_match(blocking=True)
+            except serial.serialutil.SerialException as se:
+                # Generall 2 types of exception will be thrown:
+                # 1) read failed: (9, 'Bad file descriptor')
+                #       This occurs when the connection is disconnected in the UI,
+                #       which closes the connection (and terminates this thread)
+                # 2) read failed: [Errno 6] Device not configured
+                #       This occurs when the device is physically disconnected
+                #       TODO: clean up when the plug is pulled
+                print("Exception in recv_match: " + str(se))
+                break;
             if not m:
-                return
+                break
             if m.get_type() == "BAD_DATA":
                 if mavutil.all_printable(m.data):
                     sys.stdout.write(m.data)
@@ -329,14 +339,12 @@ class MavlinkThread(QThread):
             self.emit(SIGNAL("messageReceived"), m, self.conn)
         print "Returning from thread loop"
 
-    def request_exit(self):
-        self.command_exit = True
 
 class Connection:
     """
     Encapsulates a connection via serial, TCP, or UDP ports, etc.
     """
-    def __init__(self, state, port, number):
+    def __init__(self, state, port, number):            # "number" is the bit rate
         self.state = state
         self.port = port
         self.number = number
@@ -359,7 +367,7 @@ class Connection:
         # it signals for the mav_network.process_messages function to handle the message on the
         # primary thread. That function routes the message to the appropriate vehicles.
         self.thread = MavlinkThread(self)
-        self.thread.connect(self.thread, SIGNAL("messageReceived"), self.state.mav_network.route_messages)
+        self.thread.connect(self.thread, SIGNAL("messageReceived"), self.state.mav_network.route_messages)      # TODO KW: Check return?
         self.thread.start()
 
         self.state.mav_network.add_connection(self)
@@ -368,12 +376,10 @@ class Connection:
         """
         Close the connection
         """
-        # TODO shutting down the thread throws exception
-        #self.thread.quit()
-        self.thread.disconnect()
-        self.thread.request_exit()
-        time.sleep(0.5)
+        self.thread.disconnect(self.thread, SIGNAL("messageReceived"), self.state.mav_network.route_messages)
         self.master.close()
+        self.thread.quit()
+
 
     def get_name(self):
         """
@@ -526,7 +532,7 @@ class StateDebugger:
         print("Signal: MAVNetwork.on_mav_added, caught by gcs_state.StateDebugger")
         print("New MAV:" + mav.get_name())
 
-    def catch_mav_removed(self):
+    def catch_mav_removed(self, mav):
         print("Signal: MAVNetwork.on_mav_removed, caught by gcs_state.StateDebugger")
 
     def catch_connection_added(self):
@@ -543,7 +549,7 @@ class StateDebugger:
         print("Signal: MAVNetwork.on_component_removed, caught by gcs_state.StateDebugger")
 
     def catch_network_changed(self):
-        print("Signal: MAVNetwork.catch_nework_changed, caught by gcs_state.StateDebugger")
+        print("Signal: MAVNetwork.catch_network_changed, caught by gcs_state.StateDebugger")
 
 # Everything below this line is included for reference, from mavproxy module_param, although it is not currently used
 class ParamState:
