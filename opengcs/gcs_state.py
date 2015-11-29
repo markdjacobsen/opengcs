@@ -13,6 +13,7 @@ import urllib2
 import pickle
 from PyQt4.QtCore import *
 import serial
+import mission
 
 SINGLE = 0b01
 SWARM = 0b10
@@ -361,7 +362,7 @@ class Connection:
             device = port + "," + str(number)
         print(device)
         #self.master = mavutil.mavlink_connection(port, baud=number)
-        self.master = mavutil.mavlink_connection(device)
+        self.master = mavutil.mavlink_connection(device)            # Note: "master" is the connection - generally a mavserial subclass of mavfile
 
         # Run port monitoring on a secondary thread. Any time a mavlink message is received,
         # it signals for the mav_network.process_messages function to handle the message on the
@@ -391,7 +392,7 @@ class Connection:
         """
         Returns whether the connection is alive or dead
         """
-        return self.master.portdead
+        return self.master is None or self.master.portdead
 
 
 class MAV:
@@ -422,6 +423,9 @@ class MAV:
         self.mav_param_count = 0    # Total number of parameters aboard flight controller
         self.fetch_one = 0          # ???
         self.param_fetched = False
+
+        self.mission_fetched = False
+        self.mission = None
 
         # There may be a better way to do this, but this is my solution to get a list of
         # mavlink messages this mav uses.
@@ -458,16 +462,19 @@ class MAV:
             if self.param_fetched == False:
                 self.param_fetched = True
                 self.fetch_all_parameters()
+            if self.mission_fetched == False:
+                self.mission_fetched = True
+                self.request_mission()      # TODO KW: Can we do this at the same time as we fetch parameters?  Seems to work OK...
 
 
         # DEBUG: temporary code block for debugging
-        if mtype == "VFR_HUD":
+        elif mtype == "VFR_HUD":
             self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.master.messages)
             self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.master.messages)
             self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.master.messages)
             #print(str(m.get_header().srcSystem) + ": Altitude: " + str(self.altitude))
 
-        if mtype == 'PARAM_VALUE':
+        elif mtype == 'PARAM_VALUE':
             param_id = "%.16s" % m.param_id
             # Note: the xml specifies param_index is a uint16, so -1 in that field will show as 65535
             # We accept both -1 and 65535 as 'unknown index' to future proof us against someday having that
@@ -489,8 +496,19 @@ class MAV:
                #if self.logdir != None:
                 #    self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
 
+                # TODO KW: can easily miss a parameter - presumably due to a corrupted packet - should timeout and retry &/or don't key things off of receiving all parameters
                 for func in self.on_params_initialized:
                     func()
+
+        elif mtype == 'MISSION_COUNT':
+            # TODO KW: Add if we are in the process of loading waypoints...
+            self.mission = mission.Mission(m.count)
+            self.master.target_system = self.system_id          # TODO KW: Clean this up as part of refactoring pymavlink for multi aircraft
+            for i in xrange(self.mission.wp_count):
+                self.master.waypoint_request_send(i)
+
+        elif mtype == 'MISSION_ITEM':
+            self.mission.add_wp(m)
 
     def fetch_all_parameters(self):
         print("Fetching all parameters for system ") + str(self.system_id)
@@ -506,6 +524,10 @@ class MAV:
             return
         self.mav_param.mavset(self.master, param.upper(), value, retries=3)
 
+    def request_mission(self):
+        print("Loading mission from system ") + str(self.system_id)
+        self.master.target_system = self.system_id
+        self.master.waypoint_request_list_send()
 
 class StateDebugger:
     """
@@ -514,7 +536,6 @@ class StateDebugger:
     """
     def __init__(self, state):
         self.state = state
-        self.state.on_focus_changed.append(self.catch_focus_changed)
         self.state.mav_network.on_mav_added.append(self.catch_mav_added)
         self.state.mav_network.on_mav_removed.append(self.catch_mav_removed)
         self.state.mav_network.on_connection_added.append(self.catch_connection_added)
