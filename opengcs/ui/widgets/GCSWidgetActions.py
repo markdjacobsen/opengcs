@@ -6,6 +6,8 @@ from pymavlink import mavutil
 #from gcs_state import *
 from GCSWidget import *
 import mission
+import pprint
+
 
 class GCSWidgetActions (GCSWidget):
 
@@ -18,6 +20,7 @@ class GCSWidgetActions (GCSWidget):
         self.setWindowTitle('MAV/Swarm Actions')
         self.setMinimumSize(100, 100)
 
+        #pprint.pprint(mavutil.mavlink.enums)        # Debugging
         self.init_ui()
 
     def init_ui(self):
@@ -125,7 +128,7 @@ class GCSWidgetActions (GCSWidget):
             if mav.mission is not None and mav.mission.received_complete:
                 wps_text = []
                 for wp in mav.mission:
-                    wps_text.append(str(wp.wp_msg.seq) + ": " + str(wp.wp_msg.command) + ": " + mission.mission_commands[wp.wp_msg.command])
+                    wps_text.append(str(wp.wp_msg.seq) + ": " + str(wp.wp_msg.command) + ": " + mavutil.mavlink.enums['MAV_CMD'][wp.wp_msg.command].name)
                 self.combo_wps.addItems(wps_text)
 
         else:
