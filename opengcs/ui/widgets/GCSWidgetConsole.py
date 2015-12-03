@@ -85,7 +85,6 @@ class GCSWidgetConsole (GCSWidget):
         # when a message comes in
         if m.get_header().srcSystem in self.routing_dictionary:
             self.routing_dictionary[m.get_header().srcSystem].process_messages(m)
-        return
 
     def read_settings(self, settings):
 

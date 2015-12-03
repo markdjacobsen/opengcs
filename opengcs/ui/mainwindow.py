@@ -61,7 +61,6 @@ class MainWindow(QMainWindow):
             shutil.copyfile(gcsfile('ui/perspectives/default.ini'), gcsfile('ui/perspectives/autosave.ini'))
         self.perspective = QSettings(gcsfile('ui/perspectives/autosave.ini'), QSettings.IniFormat)
 
-
         self.load_widget_library()
         self.initUI()
         self.show()
@@ -624,6 +623,7 @@ class MainWindow(QMainWindow):
         # Then create the widgets listed in the .INI file
         if widget_dict != None:
             for key in widget_dict:
+                print("MainWindow: placing widget: " + widget_dict[key])    # TODO KW: debugging for bug getting multiple copies of widgets (have seen with both Console and Action widgets)
                 position = widget_position_dict[key]
 
 
@@ -723,6 +723,7 @@ class MainWindow(QMainWindow):
         # for each file in the widgets folder
         widgetModules = []
         for i in f:
+           # TODO KW: Need to ignore .DS_Store here
             modulename = i[:-3]
             widgetModules.append(__import__('ui.widgets.' + modulename, globals(), locals(), [modulename]))
 

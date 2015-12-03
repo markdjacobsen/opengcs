@@ -1,0 +1,38 @@
+# General KW TODO tracking
+
+#   Getting three copies of status text messages?? - becasue the console is in the router 3 times!!!!
+#        This is because mainwindow has console 3 times - see build_routing_dictionary
+#        Somehow we had three consoles being loaded from autosave.ini??  Can't repro this yet
+#       This came back with three copies of the action widget...
+
+#   Garbage in the console?? are those bad packets?
+#   When a mav is connected - display some information about it.. [was this specifically for the action widget?]
+
+Action widget
+#   Need to compress ui layout for this widget
+#   Set UI speed and alt to current speeds/alt
+
+
+#   Confirm commands executed
+#   Mark: can we assume mavlink 1.0?
+#   Need to save the size of the main window
+#   Display target values like alt, speed, waypoint, throttle, attitude...
+
+# Track command acknowledgement - respond to mark
+# Send a notification to refresh the mode panel when the mission is received
+
+
+# Diagnose and resolve serial connection exceptions
+This code was catching something, but no longer (maybe only when serial port was not wotrking)
+        try:
+            self.master = mavutil.mavlink_connection(device)            # Note: "master" is the connection - generally a mavserial subclass of mavfile
+        except OSError as se:       # So far what we get here is errno 16 "Resource busy" if we try to connect to a port in use (I think)
+            # TODO: Should we pop an error dialog, or show the connection as dead in the dialong?
+            print("Exception in mavlink_connection: " + str(se))
+            self.master = None
+            return      # TODO KW: how to indicate failure and unwind the connection setup?
+
+
+Auto refresh teh WP list once the mission is received (and print out a message...)
+Need a 1hz loop in our GCS for things like checking command completion...  all parameters loaded... etc.
+    Somewhere in pymavlink (I think ) I saw one

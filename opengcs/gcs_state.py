@@ -1,5 +1,5 @@
 # _COMPONENT tag is used to mark any place we need to modify code to add support for multiple components
-# TODO catch SerialException when reading serial port
+# TODO catch SerialException when reading serial port - DONE?
 # TODO connecting to a 2nd MAV causes the focus to change to the new mav, when it shouldn't
 # TODO Swarm names/details should be loaded from a config file. Right now a few swarms are hard-coded.
 

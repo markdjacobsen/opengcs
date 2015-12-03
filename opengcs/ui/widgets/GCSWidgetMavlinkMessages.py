@@ -87,8 +87,11 @@ class GCSWidgetMavlinkMessages (GCSWidget):
 
     def process_messages(self, m):
 
-        if self.action_pause.isChecked():
-            return
+        if self.isVisible():
+            if self.action_pause.isChecked():
+                return
+        else:
+            print("Mavlink message widget is hidden")
 
         mtype = m.get_type()
 

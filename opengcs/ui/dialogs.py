@@ -1,8 +1,8 @@
-# TODO: make disconnect button work
+# TODO: make disconnect button work - DONE?
 # TODO: close all ports upon closing program
 # TODO: update port status icon / alert to dead ports
-# TODO: disconnect needs to refresh the window, removing connection from open ports and adding it to available ports
-# TODO: need a hook that detects serial port changes while on the ConnctionsDialog
+# TODO: disconnect needs to refresh the window, removing connection from open ports and adding it to available ports - DONE?
+# TODO: need a hook that detects serial port changes while on the ConnectionsDialog
 # TODO: support screen ordering in screens dialog
 
 from PyQt4.QtGui import *
@@ -40,7 +40,7 @@ class ConnectionsDialog (QDialog):
         self.combo_new_connection = QComboBox(self)
 
         self.combo_new_port = QComboBox(self)
-        self.combo_new_port.addItem('56700')
+        self.combo_new_port.addItem('57600')
         self.combo_new_port.addItem('115200')
 
         self.lineedit_new_port = QLineEdit(self)
@@ -105,9 +105,19 @@ class ConnectionsDialog (QDialog):
             row = row + 1
 
         self.combo_new_connection.clear()
+        itemCount = 0
         for port in self.serialports:
             if port not in self.openports:
                 self.combo_new_connection.addItem(port)
+                if port.startswith("/dev/tty.usbserial"):
+                    self.combo_new_connection.setCurrentIndex(itemCount)        # KW: Hack to make debugging faster
+                    self.combo_new_port.setCurrentIndex(0)
+                    itemCount = -1
+                if itemCount >= 0:                                              # Test this logic...
+                    if port == "/dev/tty.usbmodem1":
+                        self.combo_new_connection.setCurrentIndex(itemCount)        # KW: Hack to make debugging faster
+                        self.combo_new_port.setCurrentIndex(1)                      # KW move speed to 115200
+                    itemCount += 1
         self.combo_new_connection.addItem('tcp')
         self.combo_new_connection.addItem('udp')
         self.combo_new_connection.currentIndexChanged.connect(self.on_connection_combo_changed)
@@ -146,8 +156,6 @@ class ConnectionsDialog (QDialog):
         self.update_ports()
 
     def on_button_disconnect(self, row):
-        # TODO implmenet disconnect
-        port = self.table_connections.item(row, 1).text()
         conn = self.state.mav_network.connections[row]
         print 'Disconnect ' + conn.port
         conn.close()
