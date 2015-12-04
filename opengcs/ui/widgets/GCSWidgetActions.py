@@ -8,6 +8,7 @@ from GCSWidget import *
 import mission
 import pprint
 
+# TODO: Throw eror panels if no mavs to send actions to
 
 class GCSWidgetActions (GCSWidget):
 
@@ -113,7 +114,7 @@ class GCSWidgetActions (GCSWidget):
         self.refresh()
 
     def refresh(self):
-        print("Action panel refresh")
+        print("Action widget refresh")
         # TODO KW: figure out how to optimize out clearing and resetting when unnecessary
         self.combo_modes.clear()
         self.combo_wps.clear()
@@ -121,7 +122,7 @@ class GCSWidgetActions (GCSWidget):
         mavs = self.get_mavs()
         if len(mavs) > 0:
             mav = mavs[0]       # TODO KW: Temporary hack - not going to work for swarms or multi mavs
-            mode_map = mav.master.mode_mapping()
+            mode_map = mav.micro_av.mode_mapping()      # We should try to avoid this layer violation...  (digging in to micro_av)
             modes = mode_map.keys()
             self.combo_modes.addItems(modes)
 
@@ -138,19 +139,19 @@ class GCSWidgetActions (GCSWidget):
     def on_button_arm(self):
         for mav in self.get_mavs():
             print("Arming mav: " + mav.get_name())
-            mav.master.arducopter_arm()
+            mav.micro_av.arducopter_arm()
         return
 
     def on_button_disarm(self):
         for mav in self.get_mavs():
             print("Disarming mav: " + mav.get_name())
-            mav.master.arducopter_disarm()
+            mav.micro_av.arducopter_disarm()
         return
 
     def on_button_auto(self):
         for mav in self.get_mavs():
             print("Setting mav to auto: " + mav.get_name())
-            mav.master.set_mode_auto()
+            mav.micro_av.set_mode_auto()
         return
 
     def on_button_start_mission(self):
@@ -162,14 +163,14 @@ class GCSWidgetActions (GCSWidget):
     def on_button_rtl(self):
         for mav in self.get_mavs():
             print("RTL'ing mav: " + mav.get_name())
-            mav.master.set_mode_rtl()
+            mav.micro_av.set_mode_rtl()
         return
 
     def on_button_mode(self):
         mode = str(self.combo_modes.currentText())
         for mav in self.get_mavs():
             print("Setting mode for mav: " + mav.get_name() +" to: " + mode)
-            mav.master.set_mode(mode)
+            mav.micro_av.set_mode(mode)
         return
 
 
@@ -177,14 +178,14 @@ class GCSWidgetActions (GCSWidget):
         wp_seq = self.combo_wps.currentIndex()
         for mav in self.get_mavs():
             print("Setting waypoint for mav: " + mav.get_name() +" to: " + str(wp_seq))
-            mav.master.waypoint_set_current_send(wp_seq)
+            mav.micro_av.waypoint_set_current_send(wp_seq)
         return
 
     def on_button_set_alt(self):
         altitude = self.spinbox_speed.value()
         for mav in self.get_mavs():
             print("Setting altitude for mav: " + mav.get_name() +" to: " + str(altitude))
-            mav.master.mav.command_long_send(mav.master.target_system, mav.master.target_component,
+            mav.micro_av.link.command_long_send(mav.system_id(), mav.micro_av.target_component,
                     mavutil.mavlink.MAV_CMD_NAV_CONTINUE_AND_CHANGE_ALT, 0, 0, 0, 0, 0, 0, 0, altitude)     # TODO KW: Confirm this is the right command to use
         return
 
@@ -194,8 +195,8 @@ class GCSWidgetActions (GCSWidget):
             print("Setting speed for mav: " + mav.get_name() +" to: " + str(speed))
             # TODO KW: Mavlink 1.0 only - see the messages implemented in mavutil.py which have code for multiple versions (this applies to many commands here)
             # TODO KW: Implement a generic command_long_send here or in pymavlink?
-            # TODO KW: Would like to improve all these mav.master.mav.... pointers
-            mav.master.mav.command_long_send(mav.master.target_system, mav.master.target_component,     # Note: Setting airspeed (vs. groundspeed)
+            # TODO KW: Would like to improve all these mav.micro_av.mav.... pointers
+            mav.micro_av.link.command_long_send(mav.system_id(), mav.micro_av.target_component,     # Note: Setting airspeed (vs. groundspeed)
                     mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED, 0, speed, -1, 0, 0, 0, 0, 0)
         return
 

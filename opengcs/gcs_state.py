@@ -4,6 +4,7 @@
 # TODO Swarm names/details should be loaded from a config file. Right now a few swarms are hard-coded.
 
 from pymavlink import mavutil
+from pymavlink.dialects.v10 import ardupilotmega     # Ugly: Just for MAVError
 import threading
 import xmltodict
 import sys, os, fnmatch, time
@@ -182,7 +183,7 @@ class MAVNetwork:
         """
         if mav not in self.mavs:
             # Add this mav to the dictionary of all mavs
-            self.mavs[mav.system_id] = mav
+            self.mavs[mav.system_id()] = mav
 
             # Add this mav to swarm 0, which always represents all mavs
             self.swarms[0].add_mav(mav)
@@ -232,11 +233,9 @@ class MAVNetwork:
             signal()
 
     def get_mavs_on_connection(self, conn):
-        mavs = []
-        for mavkey in self.mavs:
-            if self.mavs[mavkey].conn == conn:
-                mavs.append(self.mavs[mavkey])
-        return mavs
+        print("get_mavs_on_connection does nothing anymore!!  FIXME")
+        return self.mavs.values()        # Just a quick hack to see what will happen when we fix this properly...
+        #return conn.mavs.values()
 
     def get_mav_ids(self):
         """
@@ -266,9 +265,14 @@ class MAVNetwork:
 
         # Otherwise, it's a new MAV and we need to add it
         else:
-            newmav = MAV(conn, system_id)
-            self.add_mav(newmav)
-            newmav.process_messages(m)
+            micro_av = conn.master.mavs[system_id]
+            if micro_av is None:
+                print("micro_air_vehicle not found: " + str(system_id))
+                # Raise an exception
+            else:
+                newmav = MAV(micro_av)
+                self.add_mav(newmav)
+                newmav.process_messages(m)
 
         # Forward packet to subscribers
         for signal in self.on_mavlink_packet:
@@ -331,6 +335,9 @@ class MavlinkThread(QThread):
                 #       TODO: clean up when the plug is pulled
                 print("Exception in recv_match: " + str(se))
                 break;
+            except ardupilotmega.MAVError as me:
+                print("MAVError Exception in recv_match: " + str(me))       # Just keep going
+                continue
             if not m:
                 break
             if m.get_type() == "BAD_DATA":
@@ -349,7 +356,7 @@ class Connection:
         self.state = state
         self.port = port
         self.number = number
-        self.mavs = {}
+        #self.mavs = {}
 
         # TODO Support UDP/TCP connections
         device = ""
@@ -395,7 +402,7 @@ class Connection:
         return self.master is None or self.master.portdead
 
 
-class MAV:
+class MAV():        # TODO: Ultimately it would be nice to have this as a superclass of micro_air_vehicle, but the order of init is wrong right now because there is so much duplication between here and mavutil
     """
     This class encapsulates a micro air vehicle (MAV), and theoretically represents the
     state of that vehicle at any moment in time. It is the responsibility of this class to
@@ -408,10 +415,8 @@ class MAV:
     separate the two. Most of that work will probably be done inside the MAV class and
     Connection class.
     """
-    def __init__(self, conn, system_id):
-        self.system_id = system_id
-        self.conn = conn
-        self.master = conn.master
+    def __init__(self, micro_av):
+        self.micro_av = micro_av
 
         #self.name = state.mav_library.mav_profiles[system_id].name
         self.name = "MAV"
@@ -445,7 +450,7 @@ class MAV:
         self.on_params_changed = []
 
     def get_name(self):
-        return str(self.system_id) + ": " + self.name
+        return str(self.system_id()) + ": " + self.name
 
     def process_messages(self, m):
         """
@@ -469,9 +474,9 @@ class MAV:
 
         # DEBUG: temporary code block for debugging
         elif mtype == "VFR_HUD":
-            self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.master.messages)
-            self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.master.messages)
-            self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.master.messages)
+            self.altitude = mavutil.evaluate_expression("VFR_HUD.alt", self.micro_av.messages)
+            self.airspeed = mavutil.evaluate_expression("VFR_HUD.airspeed", self.micro_av.messages)
+            self.heading = mavutil.evaluate_expression("VFR_HUD.heading", self.micro_av.messages)
             #print(str(m.get_header().srcSystem) + ": Altitude: " + str(self.altitude))
 
         elif mtype == 'PARAM_VALUE':
@@ -501,19 +506,22 @@ class MAV:
                     func()
 
         elif mtype == 'MISSION_COUNT':
-            # TODO KW: Add if we are in the process of loading waypoints...
+            # TODO KW: Add "if we are in the process of loading waypoints..."
             self.mission = mission.Mission(m.count)
-            self.master.target_system = self.system_id          # TODO KW: Clean this up as part of refactoring pymavlink for multi aircraft
+            #self.master.target_system = self.system_id          # TODO KW: Clean this up as part of refactoring pymavlink for multi aircraft
             for i in xrange(self.mission.wp_count):
-                self.master.waypoint_request_send(i)
+                self.micro_av.waypoint_request_send(i)
 
         elif mtype == 'MISSION_ITEM':
             self.mission.add_wp(m)
 
+    def system_id(self):
+        return self.micro_av.system_id
+
     def fetch_all_parameters(self):
-        print("Fetching all parameters for system ") + str(self.system_id)
-        self.master.target_system = self.system_id
-        self.master.param_fetch_all()
+        print("Fetching all parameters for system ") + str(self.micro_av.system_id)
+        #self.master.target_system = self.system_id
+        self.micro_av.param_fetch_all()
         self.mav_param_set = set()
 
     def set_parameter(self, param, value):
@@ -522,12 +530,12 @@ class MAV:
         if not param.upper() in self.mav_param:
             print("Unable to find parameter '%s'" % param)
             return
-        self.mav_param.mavset(self.master, param.upper(), value, retries=3)
+        self.mav_param.mavset(self.micro_av, param.upper(), value, retries=3)     # TODO: This don't look like it will work...
 
     def request_mission(self):
-        print("Loading mission from system ") + str(self.system_id)
-        self.master.target_system = self.system_id
-        self.master.waypoint_request_list_send()
+        print("Loading mission from system ") + str(self.system_id())
+        #self.master.target_system = self.system_id
+        self.micro_av.waypoint_request_list_send()
 
 class StateDebugger:
     """

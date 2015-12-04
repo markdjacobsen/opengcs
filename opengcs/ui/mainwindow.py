@@ -440,10 +440,10 @@ class MainWindow(QMainWindow):
             if isinstance(w, GCSWidget):
                 if w._track_focused and not w.isClosing:
                     if isinstance(self.state.focused_object, MAV) and w.get_datasource_allowed(WidgetDataSource.SINGLE):
-                        self._routing[self.state.focused_object.system_id].append(w)
+                        self._routing[self.state.focused_object.system_id()].append(w)
                     elif isinstance(self.state.focused_object, Swarm) and w.get_datasource_allowed(WidgetDataSource.SWARM):
                         for mav in self.state.focused_object.mavs:
-                            self._routing[mav.system_id].append(w)
+                            self._routing[mav.system_id()].append(w)
 
     def on_debug_network(self):
 
